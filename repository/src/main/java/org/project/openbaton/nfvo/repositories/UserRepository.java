@@ -14,21 +14,13 @@
  * limitations under the License.
  */
 
-dependencies {
-    compile project(':catalogue')
-    compile project(':exception')
-    compile project(':monitoring')
-    compile project(':vim-drivers')
+package org.project.openbaton.nfvo.repositories;
 
-    compile project(':plugin')
-    compile project(':vim-int')
+import org.project.openbaton.catalogue.security.User;
+import org.springframework.data.repository.CrudRepository;
 
-    compile 'org.slf4j:slf4j-api:1.7.12'
-
-    testCompile group: 'junit', name: 'junit', version: '4.11'
-    testCompile 'org.mockito:mockito-all:1.10.19'
-    testCompile 'org.springframework:spring-test:' + springVersion
-
-    testCompile group: 'junit', name: 'junit', version: '4.12'
-    testCompile 'commons-io:commons-io:2.4'
+/**
+ * Created by gca on 25/09/15.
+ */
+public interface UserRepository extends CrudRepository<User, String> {
 }
