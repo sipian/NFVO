@@ -15,7 +15,7 @@
  */
 
 
-package org.project.openbaton.nfvo.core.test;
+package org.openbaton.nfvo.core.test;
 
 import com.google.gson.Gson;
 import org.json.JSONObject;
@@ -70,7 +70,7 @@ public class ApiDocumentation {
 
 
     @Rule
-    public final RestDocumentation restDocumentation = new RestDocumentation("/opt/openbaton/nfvo/build/generated-snippets");
+    public final RestDocumentation restDocumentation = new RestDocumentation("../build/generated-snippets");
     private RestDocumentationResultHandler document;
     private static Logger log = LoggerFactory.getLogger(ApiDocumentation.class);
 
