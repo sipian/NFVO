@@ -21,15 +21,18 @@ package org.openbaton.catalogue.nfvo;
 public enum Action {
     GRANT_OPERATION,
     ALLOCATE_RESOURCES,
-    SCALE,
+    SCALE_IN,
+    SCALE_OUT,
     SCALING,
     ERROR,
     RELEASE_RESOURCES,
     INSTANTIATE,
     MODIFY,
+    HEAL,
     UPDATEVNFR,
     SCALED,
     RELEASE_RESOURCES_FINISH,
     INSTANTIATE_FINISH,
-    CONFIGURE, START;
+    CONFIGURE,
+    START
 }

@@ -1,9 +1,6 @@
-var app = angular.module('app').controller('NsrCtrl', function ($scope, $compile, $cookieStore, $routeParams, http, serviceAPI, topologiesAPI, AuthService) {
+var app = angular.module('app').controller('NsrCtrl', function ($scope, $http, $compile, $cookieStore, $routeParams, http, serviceAPI, topologiesAPI, AuthService) {
 
-    var url = '/api/v1/ns-records';
-    //var url = 'http://localhost:8080/api/v1/ns-records';
-
-
+    var url = $cookieStore.get('URL') + "/api/v1/ns-records/";
 
     loadTable();
 
@@ -19,7 +16,47 @@ var app = angular.module('app').controller('NsrCtrl', function ($scope, $compile
         {active: false}
     ];
 
+    $scope.addVNFCI = function (data) {
+        http.post(url + $routeParams.nsrecordId + '/vnfrecords/' + data.id + '/vdunits/vnfcinstances',{})
+            .success(function (response) {
+                showOk('Added a Virtual Network Function Component Instance.');
+                loadTable();
+            })
+            .error(function (data, status) {
+                showError(status, data);
+            });
+    };
+    $scope.removeVNFCI = function (data) {
+        http.delete(url + $routeParams.nsrecordId + '/vnfrecords/' + data.id + '/vdunits/vnfcinstances')
+            .success(function (response) {
+                showOk('Removed a Virtual Network Function Component Instance.');
+                loadTable();
+            })
+            .error(function (data, status) {
+                showError(status, data);
+            });
+    };
 
+    $scope.removeVNFCItoVDU = function (vdu) {
+        http.delete(url + $routeParams.nsrecordId + '/vnfrecords/' + $routeParams.vnfrecordId + '/vdunits/' + vdu.id + '/vnfcinstances')
+            .success(function (response) {
+                showOk('Removed the Virtual Network Function Component Instance to Vdu with id: '+vdu.id+'.');
+                loadTable();
+            })
+            .error(function (data, status) {
+                showError(status, data);
+            });
+    };
+    $scope.addVNFCItoVDU = function (vdu) {
+        http.post(url + $routeParams.nsrecordId + '/vnfrecords/' + $routeParams.vnfrecordId + '/vdunits/' + vdu.id + '/vnfcinstances',{})
+            .success(function (response) {
+                showOk('Added a Virtual Network Function Component Instance to Vdu with id: '+vdu.id+'.');
+                loadTable();
+            })
+            .error(function (data, status) {
+                showError(status, data);
+            });
+    };
     $scope.setFile = function (element) {
         $scope.$apply(function ($scope) {
 
@@ -125,9 +162,9 @@ var app = angular.module('app').controller('NsrCtrl', function ($scope, $compile
     if (!angular.isUndefined($routeParams.vnfdependencyId))
         $scope.vnfdependencyId = $routeParams.vnfdependencyId;
 
-    if (!angular.isUndefined($routeParams.vduId)){
-        $scope.vduId= $routeParams.vduId;
-        console.log(  $scope.vduId);
+    if (!angular.isUndefined($routeParams.vduId)) {
+        $scope.vduId = $routeParams.vduId;
+        console.log($scope.vduId);
     }
 
 
@@ -146,7 +183,7 @@ var app = angular.module('app').controller('NsrCtrl', function ($scope, $compile
     };
 
     $scope.deleteVNFDependency = function (vnfd) {
-        http.delete(url + '/' + $scope.nsrinfo.id + '/vnfdependencies/' + vnfd.id)
+        http.delete(url + $scope.nsrinfo.id + '/vnfdependencies/' + vnfd.id)
             .success(function (response) {
                 showOk('Deleted VNF Dependecy with id: ' + vnfd.id);
                 loadTable();
@@ -158,7 +195,7 @@ var app = angular.module('app').controller('NsrCtrl', function ($scope, $compile
     };
 
     $scope.deleteVNFR = function (vnfr) {
-        http.delete(url + '/' + $scope.nsrinfo.id + '/vnfrecords/' + vnfr.id)
+        http.delete(url + $scope.nsrinfo.id + '/vnfrecords/' + vnfr.id)
             .success(function (response) {
                 showOk('Deleted VNF Record with id: ' + vnfr.id);
                 loadTable();
@@ -170,7 +207,7 @@ var app = angular.module('app').controller('NsrCtrl', function ($scope, $compile
     };
 
     $scope.deleteNSR = function (data) {
-        http.delete(url + '/' + data.id)
+        http.delete(url + data.id)
             .success(function (response) {
                 showOk('Network Service Record deleted!');
                 loadTable();
@@ -201,7 +238,7 @@ var app = angular.module('app').controller('NsrCtrl', function ($scope, $compile
 
 
     $scope.Jsplumb = function () {
-        http.get(url + '/' + $routeParams.nsrecordId)
+        http.get(url + $routeParams.nsrecordId)
             .success(function (response, status) {
                 topologiesAPI.Jsplumb(response, 'record');
                 console.log(response);
@@ -213,7 +250,6 @@ var app = angular.module('app').controller('NsrCtrl', function ($scope, $compile
     };
 
     function loadTable() {
-        //if (!$('#jsonInfo').hasClass('in'))
         if (angular.isUndefined($routeParams.nsrecordId))
             http.get(url)
                 .success(function (response, status) {
@@ -226,7 +262,7 @@ var app = angular.module('app').controller('NsrCtrl', function ($scope, $compile
                     //$window.location.href = destinationUrl;
                 });
         else
-            http.get(url + '/' + $routeParams.nsrecordId)
+            http.get(url + $routeParams.nsrecordId)
                 .success(function (response, status) {
                     $scope.nsrinfo = response;
                     $scope.nsrJSON = JSON.stringify(response, undefined, 4);
@@ -238,6 +274,8 @@ var app = angular.module('app').controller('NsrCtrl', function ($scope, $compile
                     //var destinationUrl = '#';
                     //$window.location.href = destinationUrl;
                 });
+
+
     }
 
 

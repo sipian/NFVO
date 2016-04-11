@@ -16,33 +16,36 @@
 
 package org.openbaton.vnfm.interfaces.manager;
 
-import org.openbaton.catalogue.mano.descriptor.VNFComponent;
-import org.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
-import org.openbaton.catalogue.mano.record.VNFRecordDependency;
-import org.openbaton.vnfm.interfaces.sender.VnfmSender;
 import org.openbaton.catalogue.mano.descriptor.NetworkServiceDescriptor;
+import org.openbaton.catalogue.mano.descriptor.VNFComponent;
 import org.openbaton.catalogue.mano.record.NetworkServiceRecord;
+import org.openbaton.catalogue.mano.record.VNFCInstance;
+import org.openbaton.catalogue.mano.record.VNFRecordDependency;
 import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.openbaton.catalogue.nfvo.EndpointType;
 import org.openbaton.catalogue.nfvo.messages.Interfaces.NFVMessage;
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.exceptions.VimException;
+import org.openbaton.vnfm.interfaces.sender.VnfmSender;
 import org.springframework.scheduling.annotation.Async;
 
-import javax.jms.Destination;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 /**
  * Created by lto on 26/05/15.
  */
 public interface VnfmManager {
+    Map<String, Map<String, Integer>> getVnfrNames();
+
     void init();
 
     Future<Void> deploy(NetworkServiceDescriptor networkServiceDescriptor, NetworkServiceRecord networkServiceRecord) throws NotFoundException;
 
     VnfmSender getVnfmSender(EndpointType endpointType);
 
-    void executeAction(NFVMessage message, Destination tempDestination) throws VimException, NotFoundException;
+    String executeAction(NFVMessage message) throws VimException, NotFoundException, ExecutionException, InterruptedException;
 
     @Async
     Future<Void> sendMessageToVNFR(VirtualNetworkFunctionRecord virtualNetworkFunctionRecordDest, NFVMessage nfvMessage) throws NotFoundException;
@@ -50,5 +53,13 @@ public interface VnfmManager {
     Future<Void> release(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) throws NotFoundException;
 
     @Async
-    Future<Void> addVnfc(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord, VirtualDeploymentUnit virtualDeploymentUnit, VNFComponent component, VNFRecordDependency dependency) throws NotFoundException;
+    Future<Void> addVnfc(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord, VNFComponent component, VNFRecordDependency dependency,String mode) throws NotFoundException;
+
+    Future<Void> removeVnfcDependency(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord, VNFCInstance vnfcInstance) throws NotFoundException;
+
+    void findAndSetNSRStatus(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord);
+
+    void removeVnfrName(String nsdId, String vnfrName);
+
+    void terminate(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord);
 }

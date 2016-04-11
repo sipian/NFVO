@@ -16,20 +16,25 @@
 
 package org.openbaton.nfvo.core.api;
 
-import org.openbaton.nfvo.core.utils.NSDUtils;
-import org.openbaton.nfvo.repositories.*;
+import org.apache.commons.validator.routines.UrlValidator;
 import org.openbaton.catalogue.mano.common.Security;
 import org.openbaton.catalogue.mano.descriptor.NetworkServiceDescriptor;
 import org.openbaton.catalogue.mano.descriptor.PhysicalNetworkFunctionDescriptor;
 import org.openbaton.catalogue.mano.descriptor.VNFDependency;
 import org.openbaton.catalogue.mano.descriptor.VirtualNetworkFunctionDescriptor;
+import org.openbaton.catalogue.nfvo.VNFPackage;
 import org.openbaton.catalogue.nfvo.VnfmManagerEndpoint;
 import org.openbaton.exceptions.BadFormatException;
+import org.openbaton.exceptions.CyclicDependenciesException;
 import org.openbaton.exceptions.NetworkServiceIntegrityException;
 import org.openbaton.exceptions.NotFoundException;
+import org.openbaton.nfvo.core.utils.NSDUtils;
+import org.openbaton.nfvo.repositories.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
@@ -40,27 +45,36 @@ import javax.persistence.NoResultException;
  */
 @Service
 @Scope
+@ConfigurationProperties
 public class NetworkServiceDescriptorManagement implements org.openbaton.nfvo.core.interfaces.NetworkServiceDescriptorManagement {
 
     private Logger log = LoggerFactory.getLogger(this.getClass());
-
+    @Value("${nfvo.vnfd.cascade.delete:false}")
+    private boolean cascadeDelete;
     @Autowired
     private NetworkServiceDescriptorRepository nsdRepository;
-
     @Autowired
     private VNFDRepository vnfdRepository;
-
     @Autowired
     private VnfmEndpointRepository vnfmManagerEndpointRepository;
-
     @Autowired
     private VNFDependencyRepository vnfDependencyRepository;
-
     @Autowired
     private PhysicalNetworkFunctionDescriptorRepository pnfDescriptorRepository;
-
     @Autowired
     private NSDUtils nsdUtils;
+    @Autowired
+    private VnfPackageRepository vnfPackageRepository;
+    @Autowired
+    private VirtualNetworkFunctionManagement virtualNetworkFunctionManagement;
+
+    public boolean isCascadeDelete() {
+        return cascadeDelete;
+    }
+
+    public void setCascadeDelete(boolean cascadeDelete) {
+        this.cascadeDelete = cascadeDelete;
+    }
 
     /**
      * This operation allows submitting and
@@ -68,13 +82,29 @@ public class NetworkServiceDescriptorManagement implements org.openbaton.nfvo.co
      * including any related VNFFGD and VLD.
      */
     @Override
-    public NetworkServiceDescriptor onboard(NetworkServiceDescriptor networkServiceDescriptor) throws NotFoundException, BadFormatException, NetworkServiceIntegrityException {
+    public NetworkServiceDescriptor onboard(NetworkServiceDescriptor networkServiceDescriptor) throws NotFoundException, BadFormatException, NetworkServiceIntegrityException, CyclicDependenciesException {
+
+        log.info("Staring onboarding process for NSD: " + networkServiceDescriptor.getName());
+        UrlValidator urlValidator = new UrlValidator();
+
 
         nsdUtils.fetchExistingVnfd(networkServiceDescriptor);
 
         for (VirtualNetworkFunctionDescriptor vnfd : networkServiceDescriptor.getVnfd()) {
             if (vnfd.getEndpoint() == null)
                 vnfd.setEndpoint(vnfd.getType());
+            if (vnfd.getVnfPackageLocation() != null) {
+                if (urlValidator.isValid(vnfd.getVnfPackageLocation())) {// this is a script link
+                    VNFPackage vnfPackage = new VNFPackage();
+                    vnfPackage.setScriptsLink(vnfd.getVnfPackageLocation());
+                    vnfPackage.setName(vnfd.getName());
+                    vnfPackage = vnfPackageRepository.save(vnfPackage);
+                    vnfd.setVnfPackageLocation(vnfPackage.getId());
+                } else { // this is an id pointing to a package already existing
+                    // nothing to do here i think...
+                }
+            } else
+                log.warn("vnfPackageLocation is null. Are you sure?");
         }
 
         log.info("Checking if Vnfm is running...");
@@ -84,16 +114,15 @@ public class NetworkServiceDescriptorManagement implements org.openbaton.nfvo.co
         for (VirtualNetworkFunctionDescriptor virtualNetworkFunctionDescriptor : networkServiceDescriptor.getVnfd()) {
             boolean found = false;
             for (VnfmManagerEndpoint endpoint : endpoints) {
+                log.debug(endpoint.getType() + " == " + virtualNetworkFunctionDescriptor.getEndpoint());
                 if (endpoint.getType().equals(virtualNetworkFunctionDescriptor.getEndpoint())) {
                     found = true;
                     break;
                 }
             }
-            if (!found) {
+            if (!found)
                 throw new NotFoundException("VNFManager with endpoint: " + virtualNetworkFunctionDescriptor.getEndpoint() + " is not registered");
-            }
         }
-
         log.trace("Creating " + networkServiceDescriptor);
         log.trace("Fetching Data");
         nsdUtils.fetchVimInstances(networkServiceDescriptor);
@@ -108,9 +137,8 @@ public class NetworkServiceDescriptorManagement implements org.openbaton.nfvo.co
         log.trace("Persisted VNFDependencies");
 
 
-
         networkServiceDescriptor = nsdRepository.save(networkServiceDescriptor);
-        log.debug("Created NetworkServiceDescriptor with id " + networkServiceDescriptor.getId());
+        log.info("Created NetworkServiceDescriptor with id " + networkServiceDescriptor.getId());
         return networkServiceDescriptor;
     }
 
@@ -165,6 +193,7 @@ public class NetworkServiceDescriptorManagement implements org.openbaton.nfvo.co
      * @param id   of NetworkServiceDescriptor
      * @return the persisted VirtualNetworkFunctionDescriptor
      */
+
     public VirtualNetworkFunctionDescriptor addVnfd(VirtualNetworkFunctionDescriptor vnfd, String id) {
         return nsdRepository.addVnfd(vnfd, id);
     }
@@ -177,8 +206,10 @@ public class NetworkServiceDescriptorManagement implements org.openbaton.nfvo.co
      */
     @Override
     public void deleteVnfDescriptor(String idNsd, String idVnfd) {
-        log.debug("Removing VnfDescriptor with id: " + idVnfd + " from NSD with id: " + idNsd);
+        log.info("Removing VnfDescriptor with id: " + idVnfd + " from NSD with id: " + idNsd);
+        VirtualNetworkFunctionDescriptor virtualNetworkFunctionDescriptor = vnfdRepository.findFirstById(idVnfd);
         nsdRepository.deleteVnfd(idNsd, idVnfd);
+        vnfPackageRepository.delete(virtualNetworkFunctionDescriptor.getVnfPackageLocation());
     }
 
     /**
@@ -343,7 +374,13 @@ public class NetworkServiceDescriptorManagement implements org.openbaton.nfvo.co
      */
     @Override
     public void delete(String id) {
-        log.debug("Removing NetworkServiceDescriptor with id " + id);
-        nsdRepository.delete(nsdRepository.findOne(id));
+        log.info("Removing NetworkServiceDescriptor with id " + id);
+        NetworkServiceDescriptor networkServiceDescriptor = nsdRepository.findFirstById(id);
+        nsdRepository.delete(networkServiceDescriptor);
+        if (cascadeDelete) {
+            for (VirtualNetworkFunctionDescriptor virtualNetworkFunctionDescriptor : networkServiceDescriptor.getVnfd()) {
+                virtualNetworkFunctionManagement.delete(virtualNetworkFunctionDescriptor.getId());
+            }
+        }
     }
 }

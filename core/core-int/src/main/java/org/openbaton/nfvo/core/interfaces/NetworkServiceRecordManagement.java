@@ -19,9 +19,11 @@ package org.openbaton.nfvo.core.interfaces;
 import org.openbaton.catalogue.mano.descriptor.NetworkServiceDescriptor;
 import org.openbaton.catalogue.mano.descriptor.VNFComponent;
 import org.openbaton.catalogue.mano.record.NetworkServiceRecord;
+import org.openbaton.catalogue.mano.record.VNFCInstance;
 import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
+import org.openbaton.catalogue.nfvo.messages.Interfaces.NFVMessage;
 import org.openbaton.exceptions.*;
-import org.openbaton.vim.drivers.exceptions.VimDriverException;
+import org.openbaton.exceptions.VimDriverException;
 
 import java.util.concurrent.ExecutionException;
 
@@ -65,6 +67,8 @@ public interface NetworkServiceRecordManagement {
      */
     Iterable<NetworkServiceRecord> query();
 
+    void executeAction(NFVMessage nfvMessage,String nsrId,String idVnf,String idVdu, String idVNFCI) throws NotFoundException;
+
     NetworkServiceRecord query(String id);
 
     /**
@@ -95,12 +99,47 @@ public interface NetworkServiceRecordManagement {
     void deleteVNFDependency(String idNsr, String idVnfd);
 
     /**
-     * This method will ad a {@Link VNFCInstance} into a NetworkServiceRecord to a specific VirtualNetworkFunctionRecord
+     * This method will add a {@Link VNFCInstance} into a NetworkServiceRecord to a specific VirtualDeploymentUnit of a specific VirtualNetworkFunctionRecord
+     *
      * @param id of the NetworkServiceRecord
      * @param idVnf of the VirtualNetworkFunctionRecord
      * @param idVdu of the VirtualDeploymentUnit chosen
      * @param component
      * @return the new VNFCInstance
      */
-    void addVNFCInstance(String id, String idVnf, String idVdu, VNFComponent component) throws NotFoundException, BadFormatException, WrongStatusException;
+    void addVNFCInstance(String id, String idVnf, String idVdu, VNFComponent component,String mode) throws NotFoundException, BadFormatException, WrongStatusException;
+
+    /**
+     * This method will add a {@Link VNFCInstance} into a NetworkServiceRecord to a specific VirtualNetworkFunctionRecord. The VirtualDeploymentUnit is randomly chosen
+     *
+     * @param id
+     * @param idVnf
+     * @param component
+     * @throws NotFoundException
+     * @throws BadFormatException
+     * @throws WrongStatusException
+     */
+    void addVNFCInstance(String id, String idVnf, VNFComponent component) throws NotFoundException, BadFormatException, WrongStatusException;
+
+    /**
+     * This method will remove a {@Link VNFCInstance} of a NetworkServiceRecord from a specific VirtualNetworkFunctionRecord. VirtualDeploymentUnit will be randomly chosen.
+     *
+     * @param id
+     * @param idVnf
+     */
+    void deleteVNFCInstance(String id, String idVnf) throws NotFoundException, WrongStatusException, InterruptedException, ExecutionException, VimException;
+
+    /**
+     * This method will remove a {@Link VNFCInstance} of a NetworkServiceRecord from a specific VirtualDeploymentUnit of a specific VirtualNetworkFunctionRecord.
+     *
+     * @param id
+     * @param idVnf
+     * @param idVdu
+     * @param idVNFCI
+     */
+    void deleteVNFCInstance(String id, String idVnf, String idVdu, String idVNFCI) throws NotFoundException, WrongStatusException, InterruptedException, ExecutionException, VimException;
+
+    void switchToRedundantVNFCInstance(String id, String idVnf, String idVdu, String idVNFC, String standby, VNFCInstance failedVnfcInstance) throws NotFoundException, WrongStatusException;
+
+    void deleteVNFCInstance(String id, String idVnf, String idVdu) throws NotFoundException, WrongStatusException, InterruptedException, ExecutionException, VimException;
 }

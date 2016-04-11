@@ -243,10 +243,11 @@ public class ApiDocumentation {
 
         vl.setName("networkA");
 
-        leServerSet.add(inst);
-        leServerSet.add(startServer);
-        leClientSet.add(inst);
-        leClientSet.add(startClient);
+
+
+        instScripts.add("install.sh");
+        startServerScripts.add("start-server.sh");
+        startClientScripts.add("server_start-client.sh");
 
         inst.setEvent(Event.INSTANTIATE);
         inst.setLifecycle_events(instScripts);
@@ -257,9 +258,13 @@ public class ApiDocumentation {
         startClient.setEvent(Event.START);
         startClient.setLifecycle_events(startClientScripts);
 
-        instScripts.add("install.sh");
-        startServerScripts.add("start-server.sh");
-        startClientScripts.add("server_start-client.sh");
+        leServerSet.add(inst);
+        leServerSet.add(startServer);
+        leClientSet.add(inst);
+        leClientSet.add(startClient);
+
+
+
 
         deploymentFlavSet.add(deplFlav);
 
@@ -480,7 +485,7 @@ public class ApiDocumentation {
                         fieldWithPath("enabled").description("_"),
                         fieldWithPath("hb_version").description("_"),
                         fieldWithPath("id").description("The NSD's id"),
-                        fieldWithPath("monitoring_parameter").type(JsonFieldType.ARRAY).description("_"),
+                        fieldWithPath("monitoring_parameter").type(JsonFieldType.ARRAY).description("Used for fault management"),
                         fieldWithPath("name").description("The NSD's name"),
                         fieldWithPath("nsd_security").type(JsonFieldType.OBJECT).description("_"),
                         fieldWithPath("pnfd").description("_"),
@@ -567,7 +572,7 @@ public class ApiDocumentation {
                 thenReturn(iperfNsd1);
 
         this.mockMvc.perform(get("/api/v1/ns-descriptors/55555c52-f952-430c-b093-45acb2bbf50e/vnfdescriptors")).
-                andExpect(status().isAccepted()).
+                andExpect(status().isOk()).
                 andDo(document("nsd-get-all-v-n-f-d-example", responseFields(
                         fieldWithPath("[]").description("The array containing the VNFDs of the NSD with the specified id")
                 ))).
@@ -583,7 +588,7 @@ public class ApiDocumentation {
                 thenReturn(iperfVnfdServer);
 
         this.mockMvc.perform(get("/api/v1/ns-descriptors/55555c52-f952-430c-b093-45acb2bbf50e/vnfdescriptors/faaa910d-457d-4148-b4ea-7373b515febc")).
-                andExpect(status().isAccepted()).
+                andExpect(status().isOk()).
                 andDo(document("nsd-get-v-n-f-d-example", responseFields(
                         fieldWithPath("auto_scale_policy").type(JsonFieldType.ARRAY).description("_"),
                         fieldWithPath("configurations").type(JsonFieldType.OBJECT).description("Configuration object to provide parameters to the Network Service"),
@@ -595,7 +600,7 @@ public class ApiDocumentation {
                         fieldWithPath("lifecycle_event").description("The lifecycle events that should be executed on the VNF triggered by the vnfm"),
                         fieldWithPath("manifest_file").type(JsonFieldType.STRING).description("_"),
                         fieldWithPath("manifest_file_security").description("_"),
-                        fieldWithPath("monitoring_parameter").type(JsonFieldType.ARRAY).description("_"),
+                        fieldWithPath("monitoring_parameter").type(JsonFieldType.ARRAY).description("Used for fault management"),
                         fieldWithPath("name").description("The VNFD's name"),
                         fieldWithPath("provides").description("_"),
                         fieldWithPath("requires").description("_"),
@@ -606,7 +611,7 @@ public class ApiDocumentation {
                         fieldWithPath("virtual_link").description("Array of VirtualLinks, that represent the type of network connectivity mandated by the VNF vendor between two or more ConnectionPoints"),
                         fieldWithPath("vld").description("An array of VirtualLinkDescriptors"),
                         fieldWithPath("vnffgd").type(JsonFieldType.ARRAY).description("_"),
-                        fieldWithPath("vnfPackage").type(JsonFieldType.OBJECT).description("_"),
+                        fieldWithPath("vnfPackageLocation").type(JsonFieldType.STRING).description("The url where the scripts for the lifecycle events are stored"),
                         fieldWithPath("vdu").description("An aray of <<components-VirtualDeploymentUnit, VirtualDeploymentUnits>>"),
                         fieldWithPath("vdu_dependency").description("_")
                 ))).
@@ -714,7 +719,7 @@ public class ApiDocumentation {
                         fieldWithPath("lifecycle_event").description("The lifecycle events that should be executed on the VNF triggered by the vnfm"),
                         fieldWithPath("manifest_file").type(JsonFieldType.STRING).description("_"),
                         fieldWithPath("manifest_file_security").description("_"),
-                        fieldWithPath("monitoring_parameter").type(JsonFieldType.ARRAY).description("_"),
+                        fieldWithPath("monitoring_parameter").type(JsonFieldType.ARRAY).description("Used for fault management"),
                         fieldWithPath("name").description("The VNFD's name"),
                         fieldWithPath("provides").description("_"),
                         fieldWithPath("requires").description("_"),
@@ -725,7 +730,7 @@ public class ApiDocumentation {
                         fieldWithPath("virtual_link").description("Array of VirtualLinks, that represent the type of network connectivity mandated by the VNF vendor between two or more ConnectionPoints"),
                         fieldWithPath("vld").description("An array of VirtualLinkDescriptors"),
                         fieldWithPath("vnffgd").type(JsonFieldType.ARRAY).description("_"),
-                        fieldWithPath("vnfPackage").type(JsonFieldType.OBJECT).description("_"),
+                        fieldWithPath("vnfPackageLocation").type(JsonFieldType.STRING).description("The url where the scripts for the lifecycle events are stored"),
                         fieldWithPath("vdu").description("An aray of <<components-VirtualDeploymentUnit, VirtualDeploymentUnits>>"),
                         fieldWithPath("vdu_dependency").description("_")
                 ))).
@@ -836,10 +841,11 @@ public class ApiDocumentation {
                         fieldWithPath("auto_scale_policy").description("_"),
                         fieldWithPath("connection_point").description("_"),
                         fieldWithPath("descriptor_reference").type(JsonFieldType.STRING).description("The reference to the Network Service Descriptor used to instantiate this Network Service."),
+                        fieldWithPath("faultManagementPolicy").type(JsonFieldType.STRING).description("Used for fault management"),
                         fieldWithPath("id").description("The id of the NSR"),
                         fieldWithPath("lifecycle_event").type(JsonFieldType.ARRAY).description("_"),
                         fieldWithPath("lifecycle_event_history").type(JsonFieldType.OBJECT).description("_"),
-                        fieldWithPath("monitoring_parameter").description("_"),
+                        fieldWithPath("monitoring_parameter").type(JsonFieldType.ARRAY).description("Used for fault management"),
                         fieldWithPath("name").description("The name of the NSR"),
                         fieldWithPath("notification").type(JsonFieldType.STRING).description("_"),
                         fieldWithPath("pnfr").description("_"),
@@ -898,7 +904,7 @@ public class ApiDocumentation {
         when(networkServiceRecordManagement.query("5e074545-0a81-4de8-8494-eb67173ec565")).thenReturn(nsr2);
 
         this.mockMvc.perform(get("/api/v1/ns-records/5e074545-0a81-4de8-8494-eb67173ec565/vnfrecords/")).
-                andExpect(status().isAccepted()).
+                andExpect(status().isOk()).
                 andDo(document("nsr-get-all-vnfr-example", responseFields(
                         fieldWithPath("[]").description("The array of NSRs")
                 ))).
@@ -913,7 +919,7 @@ public class ApiDocumentation {
                 "2135f315-1772-4ad8-85c8-caa209400ef0")).thenReturn(vnfr0);
 
         this.mockMvc.perform(get("/api/v1/ns-records/5e074545-0a81-4de8-8494-eb67173ec565/vnfrecords/2135f315-1772-4ad8-85c8-caa209400ef0")).
-                andExpect(status().isAccepted()).
+                andExpect(status().isOk()).
                 andDo(document("nsr-get-vnfr-example", responseFields(
                                 fieldWithPath("audit_log").type(JsonFieldType.STRING).description("_"),
                                 fieldWithPath("auto_scale_policy").description("_"),
@@ -928,10 +934,11 @@ public class ApiDocumentation {
                                 fieldWithPath("lifecycle_event").description("The lifecycle events that should be executed on the VNF triggered by the vnfm"),
                                 fieldWithPath("lifecycle_event_history").type(JsonFieldType.ARRAY).description("_"),
                                 fieldWithPath("localization").type(JsonFieldType.STRING).description("_"),
-                                fieldWithPath("monitoring_parameter").type(JsonFieldType.ARRAY).description("_"),
+                                fieldWithPath("monitoring_parameter").type(JsonFieldType.ARRAY).description("Used for fault management"),
                                 fieldWithPath("name").type(JsonFieldType.STRING).description("The name of the VNFR"),
                                 fieldWithPath("notification").type(JsonFieldType.STRING).description("_"),
                                 fieldWithPath("parent_ns_id").type(JsonFieldType.STRING).description("Reference to the <<resources-NetworkServiceRecord, NSRs>> that this VNFR is part of"),
+                                fieldWithPath("packageId").type(JsonFieldType.STRING).description("The ID of the VNFPackage used to deploy this VNFR"),
                                 fieldWithPath("provides").type(JsonFieldType.OBJECT).description("_"),
                                 fieldWithPath("requires").type(JsonFieldType.OBJECT).description("_"),
                                 fieldWithPath("runtime_policy_info").type(JsonFieldType.STRING).description("_"),
@@ -943,8 +950,7 @@ public class ApiDocumentation {
                                 fieldWithPath("version").type(JsonFieldType.STRING).description("The version of the VNFR"),
                                 fieldWithPath("virtual_link").type(JsonFieldType.ARRAY).description("Internal Virtual Link instances used in this VNF"),
                                 fieldWithPath("vnf_address").type(JsonFieldType.ARRAY).description("An array of addresses (e.g. VLAN, IP) configured for the management access or other internal and external connection interface on this VNF"),
-                                fieldWithPath("vnfm_id").type(JsonFieldType.STRING).description("The identification of the <<components-VirtualNetworkFunctionManager, VNFM>> entity managing this VNF"),
-                                fieldWithPath("vnfPackage").type(JsonFieldType.OBJECT).description("_")
+                                fieldWithPath("vnfm_id").type(JsonFieldType.STRING).description("The identification of the <<components-VirtualNetworkFunctionManager, VNFM>> entity managing this VNF")
                 ))).
                 andDo(document("nsr-get-vnfr-example", preprocessRequest(prettyPrint()), preprocessResponse(prettyPrint())));
     }

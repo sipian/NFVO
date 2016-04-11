@@ -15,9 +15,9 @@
 
 package org.openbaton.catalogue.mano.descriptor;
 
-import org.openbaton.catalogue.nfvo.VimInstance;
 import org.openbaton.catalogue.mano.common.HighAvailability;
 import org.openbaton.catalogue.mano.common.LifecycleEvent;
+import org.openbaton.catalogue.mano.common.faultmanagement.VRFaultManagementPolicy;
 import org.openbaton.catalogue.mano.record.VNFCInstance;
 import org.openbaton.catalogue.util.IdGenerator;
 
@@ -36,12 +36,24 @@ public class VirtualDeploymentUnit implements Serializable {
     private String id;
     @Version
     private int version = 0;
+
+    /**
+     * A unique identifier of this VDU within the scope
+     * of the VNFD, including version functional
+     * * description and other identification information.
+     * This will be used to refer to VDU when defining
+     * relationships between them.
+     */
+    private String name;
     /**
      * This provides a reference to a VM image
      * NOTE: A cardinality of zero allows for creating empty virtualisation containers as per (ETSI GS NFV-SWA 001 [i.8]).
      */
     @ElementCollection(fetch = FetchType.EAGER)
     private Set<String> vm_image;
+
+
+
     /**
      * Describe the required computation resources characteristics (e.g. processing power, number of virtual CPUs, etc.),
      * including Key Quality Indicators (KQIs) for performance and reliability/availability.
@@ -70,8 +82,11 @@ public class VirtualDeploymentUnit implements Serializable {
      * the same VDU will co-exists with continuous data synchronization. ActivePassive: Implies that two instance of
      * the same VDU will co-exists without any data synchronization.
      */
-    @Enumerated(EnumType.STRING)
+    @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL )
     private HighAvailability high_availability;
+
+    @OneToMany(cascade = {CascadeType.ALL}, fetch = FetchType.EAGER)
+    private Set<VRFaultManagementPolicy> fault_management_policy;
     /**
      * Defines minimum and maximum number of instances which can be created to support scale out/in.
      */
@@ -93,8 +108,8 @@ public class VirtualDeploymentUnit implements Serializable {
     private Set<String> monitoring_parameter;
 
 //    @JsonIgnore
-    @OneToOne(fetch = FetchType.EAGER, cascade = {CascadeType.REFRESH /*TODO sure about this?*/})
-    private VimInstance vimInstance;
+//    @OneToOne(fetch = FetchType.EAGER, cascade = {CascadeType.REFRESH /*TODO sure about this?*/})
+//    private VimInstance vimInstance;
 
     private String hostname;
 
@@ -209,15 +224,12 @@ public class VirtualDeploymentUnit implements Serializable {
         return monitoring_parameter;
     }
 
-    public void setMonitoring_parameter(Set<String> monitoring_parameter) {
-        this.monitoring_parameter = monitoring_parameter;
-    }
-
     @Override
     public String toString() {
         return "VirtualDeploymentUnit{" +
                 "id='" + id + '\'' +
                 ", version=" + version +
+                ", name='" + name + '\'' +
                 ", vm_image=" + vm_image +
                 ", computation_requirement='" + computation_requirement + '\'' +
                 ", virtual_memory_resource_element='" + virtual_memory_resource_element + '\'' +
@@ -225,22 +237,44 @@ public class VirtualDeploymentUnit implements Serializable {
                 ", lifecycle_event=" + lifecycle_event +
                 ", vdu_constraint='" + vdu_constraint + '\'' +
                 ", high_availability=" + high_availability +
+                ", fault_management_policy=" + fault_management_policy +
                 ", scale_in_out=" + scale_in_out +
                 ", vnfc=" + vnfc +
-                ", hostname=" + hostname +
                 ", vnfc_instance=" + vnfc_instance +
-                ", vimInstanceName=" + vimInstanceName +
                 ", monitoring_parameter=" + monitoring_parameter +
+//                ", vimInstance=" + vimInstance +
+                ", hostname='" + hostname + '\'' +
+                ", vimInstanceName='" + vimInstanceName + '\'' +
                 '}';
     }
 
-    public VimInstance getVimInstance() {
-        return vimInstance;
+    public Set<VRFaultManagementPolicy> getFault_management_policy() {
+        return fault_management_policy;
     }
 
-    public void setVimInstance(VimInstance vimInstance) {
-        this.vimInstance = vimInstance;
+    public void setFault_management_policy(Set<VRFaultManagementPolicy> fault_management_policy) {
+        this.fault_management_policy = fault_management_policy;
     }
+
+    public void setMonitoring_parameter(Set<String> monitoring_parameter) {
+        this.monitoring_parameter = monitoring_parameter;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+//    public VimInstance getVimInstances() {
+//        return vimInstance;
+//    }
+//
+//    public void setVimInstances(VimInstance vimInstance) {
+//        this.vimInstance = vimInstance;
+//    }
 
     public String getHostname() {
         return hostname;

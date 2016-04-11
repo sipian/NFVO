@@ -17,11 +17,11 @@ package org.openbaton.common.vnfm_sdk.utils;
 
 import org.openbaton.catalogue.mano.common.Event;
 import org.openbaton.catalogue.mano.common.LifecycleEvent;
+import org.openbaton.catalogue.mano.record.VNFCInstance;
 import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.openbaton.catalogue.nfvo.Action;
+import org.openbaton.catalogue.nfvo.messages.*;
 import org.openbaton.catalogue.nfvo.messages.Interfaces.NFVMessage;
-import org.openbaton.catalogue.nfvo.messages.VnfmOrGenericMessage;
-import org.openbaton.catalogue.nfvo.messages.VnfmOrInstantiateMessage;
 
 import java.util.Collection;
 
@@ -30,13 +30,40 @@ import java.util.Collection;
  */
 public class VnfmUtils {
 
+    public static NFVMessage getNfvInstantiateMessage(VirtualNetworkFunctionRecord payload) {
+        NFVMessage nfvMessage = new VnfmOrAllocateResourcesMessage(payload);
+        return nfvMessage;
+    }
+
+    public static NFVMessage getNfvErrorMessage(VirtualNetworkFunctionRecord payload, Exception exception, String nsrId) {
+        NFVMessage nfvMessage;
+        nfvMessage = new VnfmOrErrorMessage(exception,payload, nsrId);
+        nfvMessage.setAction(Action.ERROR);
+        return nfvMessage;
+    }
+
     public static NFVMessage getNfvMessage(Action action, VirtualNetworkFunctionRecord payload) {
-        NFVMessage nfvMessage = null;
+        NFVMessage nfvMessage;
         if (Action.INSTANTIATE.ordinal() == action.ordinal())
             nfvMessage = new VnfmOrInstantiateMessage(payload);
         else
             nfvMessage = new VnfmOrGenericMessage(payload, action);
         return nfvMessage;
+    }
+
+    public static NFVMessage getNfvMessageScaled(Action action, VirtualNetworkFunctionRecord payload, VNFCInstance vnfcInstance) {
+        VnfmOrScaledMessage vnfmOrScaledMessage = new VnfmOrScaledMessage();
+        vnfmOrScaledMessage.setVirtualNetworkFunctionRecord(payload);
+        vnfmOrScaledMessage.setVnfcInstance(vnfcInstance);
+        vnfmOrScaledMessage.setAction(action);
+        return vnfmOrScaledMessage;
+    }
+    public static NFVMessage getNfvMessageHealed(Action action, VirtualNetworkFunctionRecord payload, VNFCInstance vnfcInstance) {
+        VnfmOrHealedMessage vnfmOrHealedMessage = new VnfmOrHealedMessage();
+        vnfmOrHealedMessage.setVirtualNetworkFunctionRecord(payload);
+        vnfmOrHealedMessage.setVnfcInstance(vnfcInstance);
+        vnfmOrHealedMessage.setAction(action);
+        return vnfmOrHealedMessage;
     }
 
     public static LifecycleEvent getLifecycleEvent(Collection<LifecycleEvent> events, Event event) {

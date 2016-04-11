@@ -25,20 +25,20 @@ import java.util.Map;
  * Created by lto on 21/08/15.
  */
 @Entity
-public class DependencyParameters implements Serializable{
+public class DependencyParameters implements Serializable {
 
     @Id
     private String id;
     @Version
     private int version = 0;
-
     @ElementCollection(fetch = FetchType.EAGER)
     private Map<String, String> parameters;
 
     @PrePersist
-    public void ensureId(){
-        id=IdGenerator.createUUID();
+    public void ensureId() {
+        id = IdGenerator.createUUID();
     }
+
     public String getId() {
         return id;
     }

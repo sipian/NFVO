@@ -15,10 +15,13 @@
 
 package org.openbaton.common.vnfm_sdk.interfaces;
 
-import org.openbaton.catalogue.mano.descriptor.VNFComponent;
 import org.openbaton.catalogue.mano.record.VNFCInstance;
 import org.openbaton.catalogue.mano.record.VNFRecordDependency;
 import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
+import org.openbaton.catalogue.nfvo.Action;
+import org.openbaton.catalogue.nfvo.VimInstance;
+
+import java.util.List;
 
 /**
  * Created by mpa on 05/05/15.
@@ -28,13 +31,13 @@ public interface VNFLifecycleManagement {
 	
 	/**
 	 * This operation allows creating a VNF instance.
-	 * @param scriptsLink
+	 * @param scripts
 	 * @param virtualNetworkFunctionRecord
 	 * @param scripts
+	 * @param vimInstances
 	 */
-	//CoreMessage instantiate(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord);
 
-	VirtualNetworkFunctionRecord instantiate(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord, Object scripts) throws Exception;
+	VirtualNetworkFunctionRecord instantiate(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord, Object scripts, List<VimInstance> vimInstances) throws Exception;
 	/**
 	 * This operation allows retrieving 
 	 * VNF instance state and attributes.
@@ -44,12 +47,13 @@ public interface VNFLifecycleManagement {
 	/**
 	 * This operation allows scaling 
 	 * (out/in, up/down) a VNF instance.
+	 * @param scaleOut
 	 * @param virtualNetworkFunctionRecord
 	 * @param component
 	 * @param scripts
 	 * @param dependency
 	 */
-	VirtualNetworkFunctionRecord scale(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord, VNFCInstance component, Object scripts, VNFRecordDependency dependency) throws Exception;
+	VirtualNetworkFunctionRecord scale(Action scaleOut, VirtualNetworkFunctionRecord virtualNetworkFunctionRecord, VNFCInstance component, Object scripts, VNFRecordDependency dependency) throws Exception;
 	
 	/**
 	 * This operation allows verifying if 
@@ -61,7 +65,7 @@ public interface VNFLifecycleManagement {
 	 * This operation allows verifying if 
 	 * the VNF instantiation is possible.
 	 */
-	void heal();
+	VirtualNetworkFunctionRecord heal(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord, VNFCInstance component, String cause) throws Exception;
 	
 	/**
 	 * This operation allows applying a minor/limited 

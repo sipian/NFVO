@@ -21,6 +21,7 @@ import org.junit.rules.ExpectedException;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.openbaton.catalogue.mano.common.ResiliencyLevel;
 import org.openbaton.nfvo.core.api.ConfigurationManagement;
 import org.openbaton.catalogue.mano.common.DeploymentFlavour;
 import org.openbaton.catalogue.mano.common.HighAvailability;
@@ -73,18 +74,16 @@ public class ConfigurationManagementClassSuiteTest {
 
     @Test
     public void nfvImageManagementUpdateTest() {
-        Configuration configuration_exp = createConfigutation();
-        when(configurationRepository.findOne(configuration_exp.getId())).thenReturn(configuration_exp);
-
-        Configuration configuration_new = createConfigutation();
-        configuration_new.setName("UpdatedName");
+        Configuration configutation = createConfigutation();
+        Configuration configuration2 = createConfigutation();
+        configuration2.setName("UpdatedName");
         ConfigurationParameter configurationParameter = new ConfigurationParameter();
         configurationParameter.setConfKey("new_key");
         configurationParameter.setValue("new_value");
-        configuration_new.getConfigurationParameters().add(configurationParameter);
-        configuration_exp = configurationManagement.update(configuration_new, configuration_exp.getId());
-
-        assertEqualsConfiguration(configuration_exp, configuration_new);
+        configuration2.getConfigurationParameters().add(configurationParameter);
+        when(configurationManagement.update(configuration2, configutation.getId())).thenReturn(configuration2);
+        configutation = configurationManagement.update(configuration2, configutation.getId());
+        assertEqualsConfiguration(configutation, configuration2);
 
     }
 
@@ -114,8 +113,8 @@ public class ConfigurationManagementClassSuiteTest {
     private void assertEqualsNetwork(Network network_exp, Network network_new) {
         Assert.assertEquals(network_exp.getName(), network_new.getName());
         Assert.assertEquals(network_exp.getExtId(), network_new.getExtId());
-        Assert.assertEquals(network_exp.isExternal(), network_new.isExternal());
-        Assert.assertEquals(network_exp.isShared(), network_new.isShared());
+        Assert.assertEquals(network_exp.getExternal(), network_new.getExternal());
+        Assert.assertEquals(network_exp.getShared(), network_new.getShared());
         Assert.assertEquals(network_exp.getSubnets().size(), network_new.getSubnets().size());
     }
 
@@ -182,12 +181,15 @@ public class ConfigurationManagementClassSuiteTest {
                 .setVdu(new HashSet<VirtualDeploymentUnit>() {
                     {
                         VirtualDeploymentUnit vdu = new VirtualDeploymentUnit();
-                        vdu.setHigh_availability(HighAvailability.ACTIVE_ACTIVE);
+                        HighAvailability highAvailability = new HighAvailability();
+                        highAvailability.setGeoRedundancy(false);
+                        highAvailability.setRedundancyScheme("1:N");
+                        highAvailability.setResiliencyLevel(ResiliencyLevel.ACTIVE_STANDBY_STATELESS);
+                        vdu.setHigh_availability(highAvailability);
                         vdu.setComputation_requirement("high_requirements");
                         VimInstance vimInstance = new VimInstance();
                         vimInstance.setName("vim_instance");
                         vimInstance.setType("test");
-                        vdu.setVimInstance(vimInstance);
                         add(vdu);
                     }
                 });

@@ -19,12 +19,12 @@ package org.openbaton.nfvo.vnfm_reg.tasks;
 import org.openbaton.catalogue.mano.descriptor.VNFComponent;
 import org.openbaton.catalogue.mano.descriptor.VNFDConnectionPoint;
 import org.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
-import org.openbaton.catalogue.mano.record.Status;
 import org.openbaton.catalogue.mano.record.VNFCInstance;
 import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.openbaton.catalogue.nfvo.Action;
 import org.openbaton.catalogue.nfvo.Configuration;
 import org.openbaton.catalogue.nfvo.ConfigurationParameter;
+import org.openbaton.catalogue.nfvo.messages.Interfaces.NFVMessage;
 import org.openbaton.catalogue.nfvo.messages.OrVnfmGenericMessage;
 import org.openbaton.nfvo.vnfm_reg.VnfmRegister;
 import org.openbaton.nfvo.vnfm_reg.tasks.abstracts.AbstractTask;
@@ -48,11 +48,11 @@ public class UpdatevnfrTask extends AbstractTask {
     private VnfmRegister vnfmRegister;
 
     @Override
-    protected void doWork() throws Exception {
+    protected NFVMessage doWork() throws Exception {
         VnfmSender vnfmSender;
         vnfmSender = this.getVnfmSender(vnfmRegister.getVnfm(virtualNetworkFunctionRecord.getEndpoint()).getEndpointType());
 
-        log.debug("NFVO: Update VNFR");
+        log.info("Updating VNFR " + virtualNetworkFunctionRecord.getName());
         VirtualNetworkFunctionRecord virtualNetworkFunctionRecord_nfvo = vnfrRepository.findOne(virtualNetworkFunctionRecord.getId());
         //Updating VNFR
         virtualNetworkFunctionRecord_nfvo.setStatus(virtualNetworkFunctionRecord.getStatus());
@@ -85,7 +85,6 @@ public class UpdatevnfrTask extends AbstractTask {
                 if (vdu_nfvo.getId().equals(vdu_manager.getId())) {
                     found = true;
                     log.debug("Update: Updating VDU " + vdu_nfvo.getId());
-                    vdu_nfvo.setVimInstance(vdu_manager.getVimInstance());
                     vdu_nfvo.setComputation_requirement(vdu_manager.getComputation_requirement());
                     vdu_nfvo.setHigh_availability(vdu_manager.getHigh_availability());
                     vdu_nfvo.setScale_in_out(vdu_manager.getScale_in_out());
@@ -112,8 +111,10 @@ public class UpdatevnfrTask extends AbstractTask {
         virtualNetworkFunctionRecord_nfvo.setVdu(vdus);
         log.debug("Update: VDUs of VNFR " + virtualNetworkFunctionRecord_nfvo.getId() + ": " + vdus);
         virtualNetworkFunctionRecord = vnfrRepository.save(virtualNetworkFunctionRecord_nfvo);
-        log.info("Update: Finished with VNFR: " + virtualNetworkFunctionRecord_nfvo);
-        vnfmSender.sendCommand(new OrVnfmGenericMessage(virtualNetworkFunctionRecord, Action.SCALING), getTempDestination());
+        log.info("Update: Finished with VNFR: " + virtualNetworkFunctionRecord_nfvo.getName());
+        OrVnfmGenericMessage nfvMessage = new OrVnfmGenericMessage(virtualNetworkFunctionRecord, Action.UPDATEVNFR);
+//        vnfmSender.sendCommand(nfvMessage, getTempDestination());
+        return nfvMessage;
     }
 
     private Set<VNFComponent> updateVNFComponents(Set<VNFComponent> vnfComponents_nfvo, Set<VNFComponent> vnfComponents_manager) {

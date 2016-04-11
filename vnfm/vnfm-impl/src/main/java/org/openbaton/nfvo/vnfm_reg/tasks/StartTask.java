@@ -18,9 +18,16 @@ package org.openbaton.nfvo.vnfm_reg.tasks;
 
 import org.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
 import org.openbaton.catalogue.mano.record.VNFCInstance;
+import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
+import org.openbaton.catalogue.nfvo.Action;
+import org.openbaton.catalogue.nfvo.messages.Interfaces.NFVMessage;
+import org.openbaton.catalogue.nfvo.messages.OrVnfmGenericMessage;
+import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.nfvo.repositories.VNFCInstanceRepository;
 import org.openbaton.nfvo.vnfm_reg.tasks.abstracts.AbstractTask;
+import org.openbaton.vnfm.interfaces.sender.VnfmSender;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
@@ -29,6 +36,7 @@ import org.springframework.stereotype.Service;
  */
 @Service
 @Scope("prototype")
+@ConfigurationProperties(prefix = "nfvo.start")
 public class StartTask extends AbstractTask {
 
     @Autowired
@@ -39,28 +47,48 @@ public class StartTask extends AbstractTask {
         return true;
     }
 
-    @Override
-    public void doWork() throws Exception {
-        log.debug("----> STARTED VNFR: " + virtualNetworkFunctionRecord.getName());
-        log.debug("vnfr arrived version= " + virtualNetworkFunctionRecord.getHb_version());
+    public void setOrdered(String ordered) {
+        this.ordered = ordered;
+    }
 
-//        VirtualNetworkFunctionRecord existingvnfr = vnfrRepository.findOne(virtualNetworkFunctionRecord.getId());
-//        log.debug("vnfr existing version= " + existingvnfr.getHb_version());
+    private String ordered;
+
+    @Override
+    public NFVMessage doWork() throws Exception {
+        log.info("Started VNFR: " + virtualNetworkFunctionRecord.getName());
+        VirtualNetworkFunctionRecord existing = vnfrRepository.findFirstById(virtualNetworkFunctionRecord.getId());
+        log.debug("vnfr arrived version= " + virtualNetworkFunctionRecord.getHb_version());
+        log.debug("vnfr existing version= " + existing.getHb_version());
 
         for (VirtualDeploymentUnit virtualDeploymentUnit : virtualNetworkFunctionRecord.getVdu()){
             for (VNFCInstance vnfcInstance : virtualDeploymentUnit.getVnfc_instance()){
-
-                vnfcInstanceRepository.save(vnfcInstance);
-                log.debug("VNFCI " + vnfcInstance);
+                log.trace("VNFCI arrived version: " + vnfcInstance.getVersion());
             }
         }
 
-//        for (VirtualDeploymentUnit virtualDeploymentUnit : existingvnfr.getVdu()){
-//            for (VNFCInstance vnfcInstance : virtualDeploymentUnit.getVnfc_instance()){
-//                log.debug("VNFCI EXISTING " + vnfcInstance);
-//            }
-//        }
+        for (VirtualDeploymentUnit virtualDeploymentUnit : existing.getVdu()){
+            for (VNFCInstance vnfcInstance : virtualDeploymentUnit.getVnfc_instance()){
+                log.trace("VNFCI existing version: " + vnfcInstance.getVersion());
+            }
+        }
 
         saveVirtualNetworkFunctionRecord();
+
+        if (ordered != null && Boolean.parseBoolean(ordered)) {
+            VirtualNetworkFunctionRecord nextToCallStart = getNextToCallStart(virtualNetworkFunctionRecord);
+            if (nextToCallStart != null) {
+                log.info("Calling START to: " + nextToCallStart.getName() + " because is the next in order");
+                vnfmManager.removeVnfrName(virtualNetworkFunctionRecord.getParent_ns_id(), nextToCallStart.getName());
+                sendStart(nextToCallStart);
+            }
+        }
+
+        return null;
+    }
+
+    private void sendStart(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) throws NotFoundException {
+        VnfmSender vnfmSender;
+        vnfmSender = this.getVnfmSender(vnfmRegister.getVnfm(virtualNetworkFunctionRecord.getEndpoint()).getEndpointType());
+        vnfmSender.sendCommand(new OrVnfmGenericMessage(virtualNetworkFunctionRecord, Action.START), vnfmRegister.getVnfm(virtualNetworkFunctionRecord.getEndpoint()));
     }
 }

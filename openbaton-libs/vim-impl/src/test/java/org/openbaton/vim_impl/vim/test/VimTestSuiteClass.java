@@ -19,7 +19,6 @@ package org.openbaton.vim_impl.vim.test;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.openbaton.catalogue.mano.common.DeploymentFlavour;
@@ -32,14 +31,19 @@ import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.openbaton.catalogue.nfvo.NFVImage;
 import org.openbaton.catalogue.nfvo.Server;
 import org.openbaton.catalogue.nfvo.VimInstance;
-import org.openbaton.vim.drivers.exceptions.VimDriverException;
-import org.openbaton.vim.drivers.interfaces.ClientInterfaces;
 import org.openbaton.exceptions.VimException;
+import org.openbaton.nfvo.vim_interfaces.vim.Vim;
+import org.openbaton.nfvo.vim_interfaces.vim.VimBroker;
+import org.openbaton.plugin.utils.RabbitPluginBroker;
+import org.openbaton.vim.drivers.VimDriverCaller;
+import org.openbaton.exceptions.VimDriverException;
 import org.openbaton.vim_impl.vim.AmazonVIM;
 import org.openbaton.vim_impl.vim.OpenstackVIM;
 import org.openbaton.vim_impl.vim.TestVIM;
-import org.openbaton.nfvo.vim_interfaces.vim.Vim;
-import org.openbaton.nfvo.vim_interfaces.vim.VimBroker;
+import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
+import org.powermock.modules.junit4.PowerMockRunnerDelegate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,20 +68,32 @@ import static org.mockito.Mockito.when;
 /**
  * Created by lto on 21/05/15.
  */
-@RunWith(SpringJUnit4ClassRunner.class)
+@RunWith(PowerMockRunner.class)
+@PowerMockRunnerDelegate(SpringJUnit4ClassRunner.class)
+//@RunWith(SpringJUnit4ClassRunner.class)
+//@RunWith(MockitoJUnitRunner.class)
 @TestExecutionListeners({DependencyInjectionTestExecutionListener.class})
 @ContextConfiguration(classes = {ApplicationTest.class})
 @TestPropertySource(properties = {"mocked_id=1234567890", "port: 4242"})
+@PrepareForTest({Vim.class})
 public class VimTestSuiteClass {
 
     @Rule
     public ExpectedException exception = ExpectedException.none();
 
-    @InjectMocks
-    private OpenstackVIM openstackVIM;
+    @Autowired
+    private ConfigurableApplicationContext context;
 
     @Mock
-    private ClientInterfaces clientInterfaces;
+    private VimDriverCaller vimDriverCaller;
+
+    @Mock
+    private RabbitPluginBroker rabbitPluginBroker;
+
+//    @InjectMocks
+    //@Qualifier("OpenstackVim")
+    private OpenstackVIM openstackVIM;
+
     /**
      * TODO add all other tests
      */
@@ -85,21 +101,21 @@ public class VimTestSuiteClass {
     @Autowired
     private Environment environment;
 
+    @Autowired
     private VimBroker vimBroker;
 
     private Logger log = LoggerFactory.getLogger(this.getClass());
-    @Autowired
-    private ConfigurableApplicationContext context;
 
     @Before
-    public void init() {
+    public void init() throws Exception {
         MockitoAnnotations.initMocks(this);
-        vimBroker = (VimBroker) context.getBean("vimBroker","openstack");
+        PowerMockito.whenNew(VimDriverCaller.class).withParameterTypes(String.class,String.class).withArguments("openstack","15672").thenReturn(vimDriverCaller);
+        openstackVIM = new OpenstackVIM("15672");
+        openstackVIM.setClient(vimDriverCaller);
     }
 
     @Test
     public void testVimBrokers() {
-
         Assert.assertNotNull(vimBroker);
         Vim testVIM = vimBroker.getVim("test");
         Assert.assertEquals(testVIM.getClass(), TestVIM.class);
@@ -123,10 +139,11 @@ public class VimTestSuiteClass {
         server.setExtId(environment.getProperty("mocked_id"));
         server.setIps(new HashMap<String, List<String>>());
         //TODO use the method launchInstanceAndWait properly
-        when(clientInterfaces.launchInstanceAndWait(any(VimInstance.class), anyString(), anyString(), anyString(), anyString(), anySet(), anySet(), anyString(), anyMap())).thenReturn(server);
-
+        when(vimDriverCaller.launchInstanceAndWait(any(VimInstance.class), anyString(), anyString(), anyString(), anyString(), anySet(), anySet(), anyString(), anyMap())).thenReturn(server);
+        VimInstance vimInstance = createVIM();
         try {
-            Future<VNFCInstance> id = openstackVIM.allocate(vdu, vnfr, vdu.getVnfc().iterator().next(), "", new HashMap<String, String>());
+
+            Future<VNFCInstance> id = openstackVIM.allocate(vimInstance,vdu, vnfr, vdu.getVnfc().iterator().next(), "", new HashMap<String, String>());
             String expectedId = id.get().getVc_id();
             log.debug(expectedId + " == " + environment.getProperty("mocked_id"));
             Assert.assertEquals(expectedId, environment.getProperty("mocked_id"));
@@ -144,7 +161,7 @@ public class VimTestSuiteClass {
         vdu.getVm_image().removeAll(vdu.getVm_image());
 
         exception.expect(VimException.class);
-        openstackVIM.allocate(vdu, vnfr, vdu.getVnfc().iterator().next(), "", new HashMap<String, String>());
+        openstackVIM.allocate(vimInstance, vdu, vnfr, vdu.getVnfc().iterator().next(), "", new HashMap<String, String>());
     }
 
     @Test
@@ -176,19 +193,7 @@ public class VimTestSuiteClass {
 
     private VirtualDeploymentUnit createVDU() {
         VirtualDeploymentUnit vdu = new VirtualDeploymentUnit();
-        VimInstance vimInstance = new VimInstance();
-        vimInstance.setName("mock_vim_instance");
-        vimInstance.setSecurityGroups(new HashSet<String>() {{
-            add("mock_vim_instance");
-        }});
-        vimInstance.setKeyPair("test");
-        vimInstance.setImages(new HashSet<NFVImage>() {{
-            NFVImage nfvImage = new NFVImage();
-            nfvImage.setName("image_1234");
-            nfvImage.setExtId("ext_id");
-            add(nfvImage);
-        }});
-        vdu.setVimInstance(vimInstance);
+        VimInstance vimInstance = createVIM();
         HashSet<VNFComponent> vnfc = new HashSet<>();
         vnfc.add(new VNFComponent());
         vdu.setVnfc(vnfc);
@@ -207,5 +212,27 @@ public class VimTestSuiteClass {
         deploymentFlavour.setFlavour_key("m1.small");
         vimInstance.getFlavours().add(deploymentFlavour);
         return vdu;
+    }
+
+    private VimInstance createVIM() {
+        VimInstance vimInstance = new VimInstance();
+        vimInstance.setName("mock_vim_instance");
+        vimInstance.setSecurityGroups(new HashSet<String>() {{
+            add("mock_vim_instance");
+        }});
+        vimInstance.setKeyPair("test");
+        HashSet<DeploymentFlavour> flavours = new HashSet<>();
+        DeploymentFlavour deploymentFlavour = new DeploymentFlavour();
+        deploymentFlavour.setExtId("ext_id1");
+        deploymentFlavour.setFlavour_key("m1.small");
+        flavours.add(deploymentFlavour);
+        vimInstance.setFlavours(flavours);
+        vimInstance.setImages(new HashSet<NFVImage>() {{
+            NFVImage nfvImage = new NFVImage();
+            nfvImage.setName("image_1234");
+            nfvImage.setExtId("ext_id");
+            add(nfvImage);
+        }});
+        return vimInstance;
     }
 }

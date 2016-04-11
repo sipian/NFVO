@@ -685,7 +685,8 @@ VNF.
 === LifecycleEvent
 
 Defines fuctional scripts or workflows for specific
-lifecycle events (e.g. initialization, termination, scaling) of a Network Service.
+lifecycle events (e.g. initialization, termination, scaling) of a Network Service. +
+See also http://openbaton.github.io/documentation/vnf-descriptor/.
 
 
 [[components-VirtualNetworkFunctionManager]]
@@ -698,5 +699,7 @@ See also http://openbaton.github.io/documentation/vnfm-generic/.
 [[components-VirtualDeploymentUnit]]
 === VirtualDeploymentUnit
 
-Please look at the specification at +
+Please look at the documentation at +
+http://openbaton.github.io/documentation/vnf-descriptor/ +
+and at the specification at +
 http://www.etsi.org/deliver/etsi_gs/NFV-MAN/001_099/001/01.01.01_60/gs_NFV-MAN001v010101p.pdf

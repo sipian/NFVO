@@ -17,12 +17,12 @@ package org.openbaton.catalogue.mano.record;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.openbaton.catalogue.mano.common.AutoScalePolicy;
+import org.openbaton.catalogue.mano.common.ConnectionPoint;
+import org.openbaton.catalogue.mano.common.LifecycleEvent;
+import org.openbaton.catalogue.mano.common.faultmanagement.VRFaultManagementPolicy;
 import org.openbaton.catalogue.mano.descriptor.InternalVirtualLink;
 import org.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
 import org.openbaton.catalogue.nfvo.Configuration;
-import org.openbaton.catalogue.nfvo.VNFPackage;
-import org.openbaton.catalogue.mano.common.ConnectionPoint;
-import org.openbaton.catalogue.mano.common.LifecycleEvent;
 import org.openbaton.catalogue.util.IdGenerator;
 
 import javax.persistence.*;
@@ -62,9 +62,9 @@ public class VirtualNetworkFunctionRecord implements Serializable {
     /**
      * Record of significant VNF lifecycle event (e.g. creation, scale up/down, configuration changes)
      */
-    @OneToMany(cascade = {CascadeType.ALL/*, CascadeType.REMOVE, CascadeType.PERSIST*/}, fetch = FetchType.EAGER, orphanRemoval = true)
+    @OneToMany(cascade = {CascadeType.ALL}, fetch = FetchType.EAGER, orphanRemoval = true)
     private Set<LifecycleEvent> lifecycle_event;
-    @OneToMany(cascade = {CascadeType.ALL/*CascadeType.MERGE, CascadeType.PERSIST*/}, fetch = FetchType.EAGER, orphanRemoval = true)
+    @OneToMany(cascade = {CascadeType.ALL}, fetch = FetchType.EAGER, orphanRemoval = true)
     private Set<LifecycleEvent> lifecycle_event_history;
     /**
      * A language attribute may be specified to identify default localisation/language
@@ -155,11 +155,10 @@ public class VirtualNetworkFunctionRecord implements Serializable {
      */
     @ElementCollection(fetch = FetchType.EAGER)
     private Set<String> runtime_policy_info;
+
     private String name;
     private String type;
     private String endpoint;
-    @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
-    private VNFPackage vnfPackage;
     private String task;
     @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     private Configuration requires;
@@ -167,6 +166,7 @@ public class VirtualNetworkFunctionRecord implements Serializable {
     private Configuration provides;
     @JsonIgnore
     private boolean cyclicDependency;
+    private String packageId;
 
     public VirtualNetworkFunctionRecord() {
         this.lifecycle_event = new HashSet<LifecycleEvent>();
@@ -400,41 +400,6 @@ public class VirtualNetworkFunctionRecord implements Serializable {
         this.type = type;
     }
 
-    @Override
-    public String toString() {
-        return "VirtualNetworkFunctionRecord{" +
-                "id='" + id + '\'' +
-                ", hb_version=" + hb_version +
-                ", auto_scale_policy=" + auto_scale_policy +
-                ", connection_point=" + connection_point +
-                ", deployment_flavour_key='" + deployment_flavour_key + '\'' +
-                ", lifecycle_event=" + lifecycle_event +
-                ", lifecycle_event_history=" + lifecycle_event_history +
-                ", localization='" + localization + '\'' +
-                ", monitoring_parameter=" + monitoring_parameter +
-                ", vdu=" + vdu +
-                ", vendor='" + vendor + '\'' +
-                ", version='" + version + '\'' +
-                ", virtual_link=" + virtual_link +
-                ", parent_ns_id='" + parent_ns_id + '\'' +
-                ", descriptor_reference='" + descriptor_reference + '\'' +
-                ", vnfm_id='" + vnfm_id + '\'' +
-                ", connected_external_virtual_link=" + connected_external_virtual_link +
-                ", vnf_address=" + vnf_address +
-                ", status=" + status +
-                ", notification=" + notification +
-                ", audit_log='" + audit_log + '\'' +
-                ", runtime_policy_info=" + runtime_policy_info +
-                ", name='" + name + '\'' +
-                ", type='" + type + '\'' +
-                ", endpoint='" + endpoint + '\'' +
-                ", vnfPackage=" + vnfPackage +
-                ", task='" + task + '\'' +
-                ", requires=" + requires +
-                ", provides=" + provides +
-                '}';
-    }
-
     public Configuration getRequires() {
         return requires;
     }
@@ -451,19 +416,56 @@ public class VirtualNetworkFunctionRecord implements Serializable {
         this.provides = provides;
     }
 
-    public VNFPackage getVnfPackage() {
-        return vnfPackage;
-    }
-
-    public void setVnfPackage(VNFPackage vnfPackage) {
-        this.vnfPackage = vnfPackage;
-    }
-
     public String getTask() {
         return task;
     }
 
     public void setTask(String task) {
         this.task = task;
+    }
+
+    public void setPackageId(String packageId) {
+        this.packageId = packageId;
+    }
+
+    public String getPackageId() {
+        return packageId;
+    }
+
+    @Override
+    public String toString() {
+        return "VirtualNetworkFunctionRecord{" +
+                "audit_log='" + audit_log + '\'' +
+                ", id='" + id + '\'' +
+                ", hb_version=" + hb_version +
+                ", auto_scale_policy=" + auto_scale_policy +
+                ", connection_point=" + connection_point +
+                ", deployment_flavour_key='" + deployment_flavour_key + '\'' +
+                ", configurations=" + configurations +
+                ", lifecycle_event=" + lifecycle_event +
+                ", lifecycle_event_history=" + lifecycle_event_history +
+                ", localization='" + localization + '\'' +
+                ", monitoring_parameter=" + monitoring_parameter +
+                ", vdu=" + vdu +
+                ", vendor='" + vendor + '\'' +
+                ", version='" + version + '\'' +
+                ", virtual_link=" + virtual_link +
+                ", parent_ns_id='" + parent_ns_id + '\'' +
+                ", descriptor_reference='" + descriptor_reference + '\'' +
+                ", vnfm_id='" + vnfm_id + '\'' +
+                ", connected_external_virtual_link=" + connected_external_virtual_link +
+                ", vnf_address=" + vnf_address +
+                ", status=" + status +
+                ", notification=" + notification +
+                ", runtime_policy_info=" + runtime_policy_info +
+                ", name='" + name + '\'' +
+                ", type='" + type + '\'' +
+                ", endpoint='" + endpoint + '\'' +
+                ", task='" + task + '\'' +
+                ", requires=" + requires +
+                ", provides=" + provides +
+                ", cyclicDependency=" + cyclicDependency +
+                ", packageId='" + packageId + '\'' +
+                '}';
     }
 }
