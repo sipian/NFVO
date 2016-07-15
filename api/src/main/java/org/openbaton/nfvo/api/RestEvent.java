@@ -22,61 +22,101 @@ import org.openbaton.catalogue.nfvo.Action;
 import org.openbaton.catalogue.nfvo.EventEndpoint;
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.nfvo.core.interfaces.EventDispatcher;
+import org.openbaton.nfvo.core.interfaces.EventManagement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/events")
 public class RestEvent {
 
-    //	TODO add log prints
-//	private Logger log = LoggerFactory.getLogger(this.getClass());
+  //	TODO add log prints
+  //	private Logger log = LoggerFactory.getLogger(this.getClass());
 
-    private Gson gson = new GsonBuilder().setPrettyPrinting().create();
+  private Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
-    @Autowired
-    private EventDispatcher eventDispatcher;
+  @Autowired private EventDispatcher eventDispatcher;
 
-    /**
-     * Adds a new EventEndpoint to the EventEndpoint repository
-     *
-     * @param endpoint : Image to add
-     * @return image: The image filled with values from the core
-     */
-    @RequestMapping(method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    @ResponseStatus(HttpStatus.CREATED)
-    public EventEndpoint register(@RequestBody @Valid EventEndpoint endpoint) {
+  @Autowired private EventManagement eventManagement;
 
-        return eventDispatcher.register(gson.toJson(endpoint));
-    }
+  /**
+   * Adds a new EventEndpoint to the EventEndpoint repository
+   *
+   * @param endpoint : Image to add
+   * @return image: The image filled with values from the core
+   */
+  @RequestMapping(
+    method = RequestMethod.POST,
+    consumes = MediaType.APPLICATION_JSON_VALUE,
+    produces = MediaType.APPLICATION_JSON_VALUE
+  )
+  @ResponseStatus(HttpStatus.CREATED)
+  public EventEndpoint register(
+      @RequestBody @Valid EventEndpoint endpoint,
+      @RequestHeader(value = "project-id") String projectId) {
+    endpoint.setProjectId(projectId);
+    return eventDispatcher.register(gson.toJson(endpoint));
+  }
 
-    /**
-     * Removes the EventEndpoint from the EventEndpoint repository
-     *
-     * @param name : The Event's id to be deleted
-     */
-    @RequestMapping(value = "{id}", method = RequestMethod.DELETE)
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void unregister(@PathVariable("id") String id) throws NotFoundException {
-        eventDispatcher.unregister(id);
-    }
+  /**
+   * Removes the EventEndpoint from the EventEndpoint repository
+   *
+   * @param id : The Event's id to be deleted
+   */
+  @RequestMapping(value = "{id}", method = RequestMethod.DELETE)
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void unregister(
+      @PathVariable("id") String id, @RequestHeader(value = "project-id") String projectId)
+      throws NotFoundException {
 
-    @RequestMapping(method = RequestMethod.GET)
-    public List<EventEndpoint> getEvents() {
+    eventDispatcher.unregister(id, projectId);
+  }
 
-        List<EventEndpoint> events = new ArrayList<>();
-        for (Action action : Action.values()) {
-            EventEndpoint endpoint = new EventEndpoint();
-            endpoint.setEvent(action);
-            events.add(endpoint);
-        }
-        return events;
-    }
+  /**
+   * Removes multiple EventEndpoint from the EventEndpoint repository
+   *
+   * @param ids: The List of the EventEndpoint Id to be deleted
+   * @throws NotFoundException
+   */
+  @RequestMapping(
+    value = "/multipledelete",
+    method = RequestMethod.POST,
+    consumes = MediaType.APPLICATION_JSON_VALUE
+  )
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void multipleDelete(
+      @RequestBody @Valid List<String> ids, @RequestHeader(value = "project-id") String projectId)
+      throws NotFoundException {
+    for (String id : ids) eventDispatcher.unregister(id, projectId);
+  }
 
+  @RequestMapping(method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+  public Iterable<EventEndpoint> getEventEndpoints(
+      @RequestHeader(value = "project-id") String projectId) {
+    return eventManagement.queryByProjectId(projectId);
+  }
+
+  @RequestMapping(
+    value = "/{id}",
+    method = RequestMethod.GET,
+    produces = MediaType.APPLICATION_JSON_VALUE
+  )
+  public EventEndpoint getEventEndpoint(
+      @PathVariable("id") String id, @RequestHeader(value = "project-id") String projectId) {
+    return eventManagement.query(id, projectId);
+  }
+
+  @RequestMapping(
+    value = "/actions",
+    method = RequestMethod.GET,
+    produces = MediaType.APPLICATION_JSON_VALUE
+  )
+  public Action[] getAvailableEvents() {
+    return Action.values();
+  }
 }

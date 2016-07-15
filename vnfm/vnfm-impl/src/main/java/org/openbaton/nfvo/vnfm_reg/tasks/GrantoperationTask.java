@@ -18,12 +18,14 @@ package org.openbaton.nfvo.vnfm_reg.tasks;
 
 import org.openbaton.catalogue.mano.common.Event;
 import org.openbaton.catalogue.mano.common.LifecycleEvent;
+import org.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
 import org.openbaton.catalogue.mano.record.Status;
-import org.openbaton.catalogue.nfvo.Action;
+import org.openbaton.catalogue.nfvo.VimInstance;
 import org.openbaton.catalogue.nfvo.messages.Interfaces.NFVMessage;
 import org.openbaton.catalogue.nfvo.messages.OrVnfmErrorMessage;
-import org.openbaton.catalogue.nfvo.messages.OrVnfmGenericMessage;
+import org.openbaton.catalogue.nfvo.messages.OrVnfmGrantLifecycleOperationMessage;
 import org.openbaton.nfvo.core.interfaces.VNFLifecycleOperationGranting;
+import org.openbaton.nfvo.core.interfaces.VnfPlacementManagement;
 import org.openbaton.nfvo.vnfm_reg.tasks.abstracts.AbstractTask;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,7 +34,9 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 
 /**
  * Created by lto on 06/08/15.
@@ -42,64 +46,90 @@ import java.util.HashSet;
 @ConfigurationProperties
 public class GrantoperationTask extends AbstractTask {
 
-    public boolean isCheckQuota() {
-        return checkQuota;
+  @Autowired private VnfPlacementManagement vnfPlacementManagement;
+
+  public boolean isCheckQuota() {
+    return checkQuota;
+  }
+
+  public void setCheckQuota(boolean checkQuota) {
+    this.checkQuota = checkQuota;
+  }
+
+  @Value("${nfvo.quota.check:true}")
+  private boolean checkQuota;
+
+  @Autowired private VNFLifecycleOperationGranting lifecycleOperationGranting;
+
+  @Override
+  protected NFVMessage doWork() throws Exception {
+    log.info("Executing task: GrantOperation on VNFR: " + virtualNetworkFunctionRecord.getName());
+
+    if (!checkQuota) {
+      log.warn("Checking quota is disabled, please consider to enable it");
+      LifecycleEvent lifecycleEvent = new LifecycleEvent();
+      lifecycleEvent.setEvent(Event.GRANTED);
+      lifecycleEvent.setLifecycle_events(new ArrayList<String>());
+      if (virtualNetworkFunctionRecord.getLifecycle_event_history() == null)
+        virtualNetworkFunctionRecord.setLifecycle_event_history(new HashSet<LifecycleEvent>());
+      virtualNetworkFunctionRecord.getLifecycle_event_history().add(lifecycleEvent);
+      saveVirtualNetworkFunctionRecord();
+      log.debug("Hibernate version is: " + virtualNetworkFunctionRecord.getHb_version());
+      OrVnfmGrantLifecycleOperationMessage nfvMessage = new OrVnfmGrantLifecycleOperationMessage();
+      nfvMessage.setGrantAllowed(true);
+      nfvMessage.setVduVim(new HashMap<String, VimInstance>());
+      for (VirtualDeploymentUnit virtualDeploymentUnit : virtualNetworkFunctionRecord.getVdu())
+        nfvMessage
+            .getVduVim()
+            .put(
+                virtualDeploymentUnit.getId(),
+                vnfPlacementManagement.choseRandom(virtualDeploymentUnit.getVimInstanceName()));
+      nfvMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
+      //                OrVnfmGenericMessage nfvMessage = new OrVnfmGenericMessage(virtualNetworkFunctionRecord, Action.GRANT_OPERATION);
+      return nfvMessage;
+    } else {
+      //Save the vnfr since in the grantLifecycleOperation method we use vdu.getId()
+      saveVirtualNetworkFunctionRecord();
+      Map<String, VimInstance> vimInstancesChosen =
+          lifecycleOperationGranting.grantLifecycleOperation(virtualNetworkFunctionRecord);
+      log.debug("VimInstances chosen are: " + vimInstancesChosen);
+      log.debug(vimInstancesChosen.size() + " == " + virtualNetworkFunctionRecord.getVdu().size());
+      if (vimInstancesChosen.size() == virtualNetworkFunctionRecord.getVdu().size()) {
+        log.info(
+            "Finished task: GrantOperation on VNFR: " + virtualNetworkFunctionRecord.getName());
+        LifecycleEvent lifecycleEvent = new LifecycleEvent();
+        lifecycleEvent.setEvent(Event.GRANTED);
+        lifecycleEvent.setLifecycle_events(new ArrayList<String>());
+        if (virtualNetworkFunctionRecord.getLifecycle_event_history() == null)
+          virtualNetworkFunctionRecord.setLifecycle_event_history(new HashSet<LifecycleEvent>());
+        virtualNetworkFunctionRecord.getLifecycle_event_history().add(lifecycleEvent);
+        saveVirtualNetworkFunctionRecord();
+        log.debug("Hibernate version is: " + virtualNetworkFunctionRecord.getHb_version());
+        OrVnfmGrantLifecycleOperationMessage nfvMessage =
+            new OrVnfmGrantLifecycleOperationMessage();
+        nfvMessage.setGrantAllowed(true);
+        nfvMessage.setVduVim(vimInstancesChosen);
+        nfvMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
+        //                OrVnfmGenericMessage nfvMessage = new OrVnfmGenericMessage(virtualNetworkFunctionRecord, Action.GRANT_OPERATION);
+        return nfvMessage;
+      } else {
+        // there are not enough resources for deploying VNFR
+        log.error(
+            "Not enough resources for deploying VirtualNetworkFunctionRecord "
+                + virtualNetworkFunctionRecord.getName());
+        virtualNetworkFunctionRecord.setStatus(Status.ERROR);
+        saveVirtualNetworkFunctionRecord();
+        vnfmManager.findAndSetNSRStatus(virtualNetworkFunctionRecord);
+        return new OrVnfmErrorMessage(
+            virtualNetworkFunctionRecord,
+            "Not enough resources for deploying VirtualNetworkFunctionRecord "
+                + virtualNetworkFunctionRecord.getName());
+      }
     }
+  }
 
-    public void setCheckQuota(boolean checkQuota) {
-        this.checkQuota = checkQuota;
-    }
-
-    @Value("${nfvo.quota.check:true}")
-    private boolean checkQuota;
-
-    @Autowired
-    private VNFLifecycleOperationGranting lifecycleOperationGranting;
-
-    @Override
-    protected NFVMessage doWork() throws Exception {
-        log.info("Executing task: GrantOperation on VNFR: " + virtualNetworkFunctionRecord.getName());
-
-        if (!checkQuota) {
-            log.warn("Checking quota is disabled, please consider to enable it");
-            LifecycleEvent lifecycleEvent = new LifecycleEvent();
-            lifecycleEvent.setEvent(Event.GRANTED);
-            lifecycleEvent.setLifecycle_events(new ArrayList<String>());
-            if (virtualNetworkFunctionRecord.getLifecycle_event_history() == null)
-                virtualNetworkFunctionRecord.setLifecycle_event_history(new HashSet<LifecycleEvent>());
-            virtualNetworkFunctionRecord.getLifecycle_event_history().add(lifecycleEvent);
-            saveVirtualNetworkFunctionRecord();
-            log.debug("Hibernate version is: " + virtualNetworkFunctionRecord.getHb_version());
-            OrVnfmGenericMessage nfvMessage = new OrVnfmGenericMessage(virtualNetworkFunctionRecord, Action.GRANT_OPERATION);
-            return nfvMessage;
-        }
-        else{
-            if (lifecycleOperationGranting.grantLifecycleOperation(virtualNetworkFunctionRecord)) {
-                log.info("Finished task: GrantOperation on VNFR: " + virtualNetworkFunctionRecord.getName());
-                LifecycleEvent lifecycleEvent = new LifecycleEvent();
-                lifecycleEvent.setEvent(Event.GRANTED);
-                lifecycleEvent.setLifecycle_events(new ArrayList<String>());
-                if (virtualNetworkFunctionRecord.getLifecycle_event_history() == null)
-                    virtualNetworkFunctionRecord.setLifecycle_event_history(new HashSet<LifecycleEvent>());
-                virtualNetworkFunctionRecord.getLifecycle_event_history().add(lifecycleEvent);
-                saveVirtualNetworkFunctionRecord();
-                log.debug("Hibernate version is: " + virtualNetworkFunctionRecord.getHb_version());
-                OrVnfmGenericMessage nfvMessage = new OrVnfmGenericMessage(virtualNetworkFunctionRecord, Action.GRANT_OPERATION);
-                return nfvMessage;
-            } else {
-                // there are not enough resources for deploying VNFR
-                log.error("Not enough resources for deploying VirtualNetworkFunctionRecord " + virtualNetworkFunctionRecord.getName());
-                virtualNetworkFunctionRecord.setStatus(Status.ERROR);
-                saveVirtualNetworkFunctionRecord();
-                vnfmManager.findAndSetNSRStatus(virtualNetworkFunctionRecord);
-                OrVnfmErrorMessage nfvMessage = new OrVnfmErrorMessage(virtualNetworkFunctionRecord, "Not enough resources for deploying VirtualNetworkFunctionRecord " + virtualNetworkFunctionRecord.getName());
-                return nfvMessage;
-            }
-        }
-    }
-
-    @Override
-    public boolean isAsync() {
-        return true;
-    }
+  @Override
+  public boolean isAsync() {
+    return true;
+  }
 }

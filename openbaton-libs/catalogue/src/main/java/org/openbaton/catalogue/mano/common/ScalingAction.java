@@ -24,53 +24,70 @@ import java.io.Serializable;
  * Created by mpa on 15/12/15.
  */
 @Entity
-public class ScalingAction implements Serializable{
-	@Id
-	private String id;
-	@Version
-	private int version = 0;
+public class ScalingAction implements Serializable {
+  @Id private String id;
+  @Version private int version = 0;
 
-	@Enumerated(EnumType.STRING)
-	private ScalingActionType type;
+  @Enumerated(EnumType.STRING)
+  private ScalingActionType type;
 
-	private String value;
+  private String value;
 
-	@PrePersist
-	public void ensureId() {
-		id = IdGenerator.createUUID();
-	}
+  private String target;
 
-	public String getId() {
-		return id;
-	}
+  @PrePersist
+  public void ensureId() {
+    id = IdGenerator.createUUID();
+  }
 
-	public int getVersion() {
-		return version;
-	}
+  public String getId() {
+    return id;
+  }
 
-	public ScalingActionType getType() {
-		return type;
-	}
+  public int getVersion() {
+    return version;
+  }
 
-	public void setType(ScalingActionType type) {
-		this.type = type;
-	}
+  public ScalingActionType getType() {
+    return type;
+  }
 
-	public String getValue() {
-		return value;
-	}
+  public void setType(ScalingActionType type) {
+    this.type = type;
+  }
 
-	public void setValue(String value) {
-		this.value = value;
-	}
+  public String getValue() {
+    return value;
+  }
 
-	@Override
-	public String toString() {
-		return "ScalingAction{" +
-				"id='" + id + '\'' +
-				", version=" + version +
-				", type=" + type +
-				", value='" + value + '\'' +
-				'}';
-	}
+  public void setValue(String value) {
+    this.value = value;
+  }
+
+  public String getTarget() {
+    return target;
+  }
+
+  public void setTarget(String target) {
+    this.target = target;
+  }
+
+  @Override
+  public String toString() {
+    return "ScalingAction{"
+        + "id='"
+        + id
+        + '\''
+        + ", version="
+        + version
+        + ", type="
+        + type
+        + ", value='"
+        + value
+        + '\''
+        + ", target='"
+        + target
+        + '\''
+        + '}';
+  }
 }

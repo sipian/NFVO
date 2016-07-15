@@ -17,35 +17,59 @@ package org.openbaton.catalogue.nfvo.messages;
 
 import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.openbaton.catalogue.nfvo.Action;
+import org.openbaton.catalogue.nfvo.VimInstance;
 import org.openbaton.catalogue.nfvo.messages.Interfaces.VnfmOrMessage;
+
+import java.util.Map;
 
 /**
  * Created by mob on 15.09.15.
  */
 public class VnfmOrAllocateResourcesMessage extends VnfmOrMessage {
-    private VirtualNetworkFunctionRecord virtualNetworkFunctionRecord;
+  private VirtualNetworkFunctionRecord virtualNetworkFunctionRecord;
+  private Map<String, VimInstance> vimInstances;
+  private String userdata;
 
-    public VnfmOrAllocateResourcesMessage() {
-        this.action = Action.ALLOCATE_RESOURCES;
-    }
+  public VnfmOrAllocateResourcesMessage() {
+    this.action = Action.ALLOCATE_RESOURCES;
+  }
 
-    public VnfmOrAllocateResourcesMessage(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
-        this.virtualNetworkFunctionRecord = virtualNetworkFunctionRecord;
-        this.action = Action.ALLOCATE_RESOURCES;
-    }
+  @Override
+  public String toString() {
+    return "VnfmOrAllocateResourcesMessage{"
+        + "virtualNetworkFunctionRecord="
+        + virtualNetworkFunctionRecord
+        + ", vimInstances="
+        + vimInstances
+        + ", userdata='"
+        + (userdata == null || userdata.equals("") ? "none" : "yes")
+        + '\''
+        + "} "
+        + super.toString();
+  }
 
-    @Override
-    public String toString() {
-        return "VnfmOrAllocateResourcesMessage{" +
-                ", virtualNetworkFunctionRecord=" + virtualNetworkFunctionRecord +
-                '}';
-    }
+  public Map<String, VimInstance> getVimInstances() {
+    return vimInstances;
+  }
 
-    public VirtualNetworkFunctionRecord getVirtualNetworkFunctionRecord() {
-        return virtualNetworkFunctionRecord;
-    }
+  public void setVimInstances(Map<String, VimInstance> vimInstances) {
+    this.vimInstances = vimInstances;
+  }
 
-    public void setVirtualNetworkFunctionRecord(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
-        this.virtualNetworkFunctionRecord = virtualNetworkFunctionRecord;
-    }
+  public VirtualNetworkFunctionRecord getVirtualNetworkFunctionRecord() {
+    return virtualNetworkFunctionRecord;
+  }
+
+  public void setVirtualNetworkFunctionRecord(
+      VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
+    this.virtualNetworkFunctionRecord = virtualNetworkFunctionRecord;
+  }
+
+  public void setUserdata(String userdata) {
+    this.userdata = userdata;
+  }
+
+  public String getUserdata() {
+    return userdata;
+  }
 }
