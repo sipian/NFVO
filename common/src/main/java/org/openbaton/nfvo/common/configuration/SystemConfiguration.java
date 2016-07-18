@@ -22,7 +22,8 @@ import org.springframework.context.annotation.Scope;
 @ConfigurationProperties
 public class SystemConfiguration {
 
-  @Value("${server.https:false}")
+
+  @Value("${nfvo.https:false}")
   private boolean https;
 
   @Bean

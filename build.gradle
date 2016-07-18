@@ -91,6 +91,7 @@ dependencies {
     compile project(':main')
 }
 
+
 asciidoctorj {
     version = '1.5.2'
 }
@@ -116,7 +117,6 @@ jar {   //api-doc
     from ("${asciidoctor.outputDir}") {
     }
 }
-
 
 
 build.dependsOn verifyGoogleJavaFormat
