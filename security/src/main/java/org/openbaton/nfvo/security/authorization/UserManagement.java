@@ -150,5 +150,4 @@ public class UserManagement implements org.openbaton.nfvo.security.interfaces.Us
     log.debug("Got old password: " + oldPwd);
     userDetailsManager.changePassword(oldPwd, newPwd);
   }
-
 }

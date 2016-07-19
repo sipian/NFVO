@@ -8,6 +8,38 @@
 :sectnums:
 
 
+== Getting started
+
+This document describes the REST API provided by the Network Function Virtualization Orchestrator (NFVO). +
+To send REST requests to the NFVO you first have to get a token which you then have to pass in the header of every request. +
+
+=== Retrieving a token
+
+You can retrieve a token by executing this curl request: +
+
+`curl -v -u openbatonOSClient:secret -X POST http://localhost:8080/oauth/token -H "Accept:application/json" -d "username=admin&password=openbaton&grant_type=password"` +
+
+Depending on your credentials you may have to change the username and password field in the request and the host and port. +
+The answer from the orchestrator will look something like this: +
+
+{ +
+  "value": "b2816f07-28ad-4c28-8b03-bba9aeed0612", +
+  "expiration": "Jul 20, 2016 2:24:57 AM", +
+  "tokenType": "bearer", +
+  "refreshToken": { +
+    "expiration": "Aug 18, 2016 2:24:57 PM", +
+    "value": "572a429b-918d-497a-bb70-3e1441bd6263" +
+  }, +
+  "scope": [ +
+    "read", +
+    "write" +
+  ], +
+  "additionalInformation": {} +
+}
+
+The value field contains the token. In this case `b2816f07-28ad-4c28-8b03-bba9aeed0612`.
+
+
 
 [[resources-NetworkServiceDescriptor]]
 == Network Service Descriptor
@@ -667,6 +699,244 @@ include::{snippets}/vnfpackage-delete-example/curl-request.adoc[]
 ==== Example response
 
 include::{snippets}/vnfpackage-delete-example/http-response.adoc[]
+
+
+
+
+[[resources-User]]
+== User
+
+=== Overview
+
+To work with the NFVO you have to log in as a user.
+A user can be assigned to different projects to which he has access.
+A user can have the role of an OB_ADMIN, ADMIN or GUEST each of one has different permissions.
+
+=== Adding a User
+
+`POST` request with a User as JSON content in the request body +
+{host}/api/v1/users
+
+==== Request structure
+
+include::{snippets}/user-create-example/request-fields.adoc[]
+
+==== Example request
+
+include::{snippets}/user-create-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/user-create-example/http-response.adoc[]
+
+
+=== Retrieving all Users
+
+`GET` request +
+{host}/api/v1/users
+
+==== response structure
+
+include::{snippets}/user-get-all-example/response-fields.adoc[]
+
+==== Example request
+
+include::{snippets}/user-get-all-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/user-get-all-example/http-response.adoc[]
+
+
+=== Retrieving a User
+
+`GET` request +
+the name in the request is the username of the requested User +
+{host}/api/v1/users/{username}
+
+==== Response structure
+
+include::{snippets}/user-get-example/response-fields.adoc[]
+
+==== Example request
+
+include::{snippets}/user-get-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/user-get-example/http-response.adoc[]
+
+
+=== Retrieving the current User
+
+`GET` request +
+{host}/api/v1/users/current
+
+==== Response structure
+
+include::{snippets}/user-get-current-example/response-fields.adoc[]
+
+==== Example request
+
+include::{snippets}/user-get-current-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/user-get-current-example/http-response.adoc[]
+
+
+=== Updating a User
+
+`PUT` request with the updated User as a JSON object in the request body +
+the name in the request is the username of the requested User +
+{host}/api/v1/users/{username}
+
+==== Request structure
+
+include::{snippets}/user-update-example/request-fields.adoc[]
+
+==== Example Request
+
+include::{snippets}/user-update-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/user-update-example/http-response.adoc[]
+
+
+=== Changing a User's password
+
+`PUT` request with the a JSON object in the request body containing the fields old_pwd and new_pwd +
+{host}/api/v1/users/{username}
+
+==== Request structure
+
+include::{snippets}/user-change-password-example/request-fields.adoc[]
+
+==== Example Request
+
+include::{snippets}/user-change-password-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/user-change-password-example/http-response.adoc[]
+
+
+=== Removing a User
+
+`DELETE` request +
+the id in the request belongs to the User that shall be deleted +
+{host}/api/v1/users/{userId}
+
+==== Example request
+
+include::{snippets}/user-delete-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/user-delete-example/http-response.adoc[]
+
+
+
+
+
+
+
+
+[[resources-Project]]
+== Project
+
+=== Overview
+
+Projects are used to provide sets of users a separated working environment.
+
+=== Adding a Project
+
+`POST` request with a Project as JSON content in the request body +
+{host}/api/v1/projects
+
+==== Request structure
+
+include::{snippets}/project-create-example/request-fields.adoc[]
+
+==== Example request
+
+include::{snippets}/project-create-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/project-create-example/http-response.adoc[]
+
+
+=== Retrieving all Projects
+
+`GET` request +
+{host}/api/v1/projects
+
+==== response structure
+
+include::{snippets}/project-get-all-example/response-fields.adoc[]
+
+==== Example request
+
+include::{snippets}/project-get-all-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/project-get-all-example/http-response.adoc[]
+
+
+=== Retrieving a Project
+
+`GET` request +
+the id in the request is the id of the requested Project +
+{host}/api/v1/projects/{projectId}
+
+==== Response structure
+
+include::{snippets}/project-get-example/response-fields.adoc[]
+
+==== Example request
+
+include::{snippets}/project-get-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/project-get-example/http-response.adoc[]
+
+
+=== Updating a Project
+
+`PUT` request with the updated Project as a JSON object in the request body +
+{host}/api/v1/projects/{projectId}
+
+==== Request structure
+
+include::{snippets}/project-update-example/request-fields.adoc[]
+
+==== Example Request
+
+include::{snippets}/project-update-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/project-update-example/http-response.adoc[]
+
+
+=== Removing a Project
+
+`DELETE` request +
+the id in the request belongs to the Project that shall be deleted +
+{host}/api/v1/projects/{projectId}
+
+==== Example request
+
+include::{snippets}/project-delete-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/project-delete-example/http-response.adoc[]
+
 
 
 

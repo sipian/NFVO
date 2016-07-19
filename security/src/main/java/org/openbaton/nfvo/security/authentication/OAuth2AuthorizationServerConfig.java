@@ -46,7 +46,6 @@ public class OAuth2AuthorizationServerConfig extends AuthorizationServerConfigur
   @Qualifier("customUserDetailsService")
   private UserDetailsManager userDetailsManager;
 
-
   @Bean
   public TokenStore tokenStore() {
     return new InMemoryTokenStore();

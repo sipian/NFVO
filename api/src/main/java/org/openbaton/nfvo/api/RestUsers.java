@@ -135,8 +135,11 @@ public class RestUsers {
   public void changePassword(@RequestBody /*@Valid*/ JsonObject newPwd)
       throws UnauthorizedUserException {
     log.debug("Changing password");
-    JsonObject jsonObject = gson.fromJson(newPwd, JsonObject.class);
-    userManagement.changePassword(
-        jsonObject.get("old_pwd").getAsString(), jsonObject.get("new_pwd").getAsString());
+    // commented for api documentation
+    //    JsonObject jsonObject = gson.fromJson(newPwd, JsonObject.class);
+    //    userManagement.changePassword(
+    //        jsonObject.get("old_pwd").getAsString(), jsonObject.get("new_pwd").getAsString());
+    // added for the api documentation
+    userManagement.changePassword("thatsTheOldPassword", "thatsTheNewPassword");
   }
 }

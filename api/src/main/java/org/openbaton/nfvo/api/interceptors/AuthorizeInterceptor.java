@@ -96,7 +96,6 @@ public class AuthorizeInterceptor extends HandlerInterceptorAdapter {
         return true;
       }
 
-
       if (user.getRoles().iterator().next().getRole().ordinal() == RoleEnum.GUEST.ordinal()) {
         if (request.getMethod().equalsIgnoreCase("get")) {
           log.trace("Return true for guest");
