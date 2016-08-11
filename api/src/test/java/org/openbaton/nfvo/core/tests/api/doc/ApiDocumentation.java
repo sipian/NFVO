@@ -248,6 +248,7 @@ public class ApiDocumentation {
   private Quota quota1 = new Quota();
   private Quota quota1Return = new Quota();
   private JsonObject changePwd = new JsonObject();
+  private List<String> idList = new LinkedList<>();
 
   @Before
   public void setUp() {
@@ -954,6 +955,7 @@ public class ApiDocumentation {
     updateUser.setUsername("username");
     updateUser.setPassword("123");
     updateUser.setRoles(roles2);
+    updateUser.setId("7a327f1e-5a42-a4a5-aab0-9516248c6fca");
     returnUser.setUsername("username");
     returnUser.setId("7a327f1e-5a42-a4a5-aab0-9516248c6fca");
     returnUser.setRoles(roles1);
@@ -990,6 +992,9 @@ public class ApiDocumentation {
     JsonPrimitive newPwd = new JsonPrimitive("thatsTheNewPassword");
     changePwd.add("old_pwd", oldPwd);
     changePwd.add("new_pwd", newPwd);
+
+    idList.add("55555c52-f952-430c-b093-45acb2bbf50e");
+    idList.add("5c357f1e-9a42-c4a5-bab0-3916248c6fca");
   }
 
   @Test
@@ -1152,6 +1157,25 @@ public class ApiDocumentation {
             delete("/api/v1/ns-descriptors/55555c52-f952-430c-b093-45acb2bbf50e")
                 .header("project-id", "8a387f1e-9a42-43c7-bab0-3915719c6fca")
                 .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e"))
+        .andExpect(status().isNoContent());
+  }
+
+  @Test
+  public void nsdMultipleDeleteExample() throws Exception {
+    Mockito.doNothing()
+        .when(networkServiceDescriptorManagement)
+        .delete("55555c52-f952-430c-b093-45acb2bbf50e", "8a387f1e-9a42-43c7-bab0-3915719c6fca");
+
+    Mockito.doNothing()
+        .when(networkServiceDescriptorManagement)
+        .delete("5c357f1e-9a42-c4a5-bab0-3916248c6fca", "8a387f1e-9a42-43c7-bab0-3915719c6fca");
+
+    this.mockMvc
+        .perform(
+            delete("/api/v1/ns-descriptors/multipledelete")
+                .header("project-id", "8a387f1e-9a42-43c7-bab0-3915719c6fca")
+                .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e")
+                .content(gson.toJson(idList)))
         .andExpect(status().isNoContent());
   }
 
@@ -1598,6 +1622,25 @@ public class ApiDocumentation {
   }
 
   @Test
+  public void vnfdMultipleDeleteExample() throws Exception {
+    Mockito.doNothing()
+        .when(vnfdManagement)
+        .delete("55555c52-f952-430c-b093-45acb2bbf50e", "8a387f1e-9a42-43c7-bab0-3915719c6fca");
+
+    Mockito.doNothing()
+        .when(vnfdManagement)
+        .delete("5c357f1e-9a42-c4a5-bab0-3916248c6fca", "8a387f1e-9a42-43c7-bab0-3915719c6fca");
+
+    this.mockMvc
+        .perform(
+            delete("/api/v1/vnf-descriptors/multipledelete")
+                .header("project-id", "8a387f1e-9a42-43c7-bab0-3915719c6fca")
+                .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e")
+                .content(gson.toJson(idList)))
+        .andExpect(status().isNoContent());
+  }
+
+  @Test
   public void nsrCreateExample() throws Exception, QuotaExceededException, BadFormatException {
     when(
             networkServiceRecordManagement.onboard(
@@ -1807,6 +1850,25 @@ public class ApiDocumentation {
             delete("/api/v1/ns-records/66046d77-aade-4f14-ad39-f2976532e5f2")
                 .header("project-id", "8a387f1e-9a42-43c7-bab0-3915719c6fca")
                 .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e"))
+        .andExpect(status().isNoContent());
+  }
+
+  @Test
+  public void nsrMultipleDeleteExample() throws Exception {
+    Mockito.doNothing()
+        .when(networkServiceRecordManagement)
+        .delete("55555c52-f952-430c-b093-45acb2bbf50e", "8a387f1e-9a42-43c7-bab0-3915719c6fca");
+
+    Mockito.doNothing()
+        .when(networkServiceRecordManagement)
+        .delete("5c357f1e-9a42-c4a5-bab0-3916248c6fca", "8a387f1e-9a42-43c7-bab0-3915719c6fca");
+
+    this.mockMvc
+        .perform(
+            delete("/api/v1/ns-records/multipledelete")
+                .header("project-id", "8a387f1e-9a42-43c7-bab0-3915719c6fca")
+                .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e")
+                .content(gson.toJson(idList)))
         .andExpect(status().isNoContent());
   }
 
@@ -2239,6 +2301,25 @@ public class ApiDocumentation {
   }
 
   @Test
+  public void vnfpackageMultipleDeleteExample() throws Exception {
+    Mockito.doNothing()
+        .when(vnfPackageManagement)
+        .delete("55555c52-f952-430c-b093-45acb2bbf50e", "8a387f1e-9a42-43c7-bab0-3915719c6fca");
+
+    Mockito.doNothing()
+        .when(vnfPackageManagement)
+        .delete("5c357f1e-9a42-c4a5-bab0-3916248c6fca", "8a387f1e-9a42-43c7-bab0-3915719c6fca");
+
+    this.mockMvc
+        .perform(
+            delete("/api/v1/vnf-packages/multipledelete")
+                .header("project-id", "8a387f1e-9a42-43c7-bab0-3915719c6fca")
+                .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e")
+                .content(gson.toJson(idList)))
+        .andExpect(status().isNoContent());
+  }
+
+  @Test
   public void userCreateExample() throws Exception {
     when(userManagement.add(any(User.class))).thenReturn(returnUser);
 
@@ -2377,6 +2458,7 @@ public class ApiDocumentation {
                 requestFields(
                     fieldWithPath("enabled")
                         .description("The user can access his account just if enabled is true"),
+                    fieldWithPath("id").description("The user's id"),
                     fieldWithPath("password")
                         .type(JsonFieldType.STRING)
                         .description("The user's password"),

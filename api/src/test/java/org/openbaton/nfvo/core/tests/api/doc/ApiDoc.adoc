@@ -129,7 +129,7 @@ include::{snippets}/nsd-update-example/http-response.adoc[]
 
 `DELETE` request +
 the id in the url belongs to the NSD to delete +
-{host}/api/v1/ns-descriptors{nsdId}
+{host}/api/v1/ns-descriptors/{nsdId}
 
 ==== Example request
 
@@ -138,6 +138,21 @@ include::{snippets}/nsd-delete-example/curl-request.adoc[]
 ==== Example response
 
 include::{snippets}/nsd-delete-example/http-response.adoc[]
+
+
+=== Removing multiple Network Service Descriptors
+
+`DELETE` request +
+the ids in the request body specify the NSDs to delete +
+{host}/api/v1/ns-descriptors/multipledelete
+
+==== Example request
+
+include::{snippets}/nsd-multiple-delete-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/nsd-multiple-delete-example/http-response.adoc[]
 
 
 [[resources-VirtualNetworkFunctionDescriptor]]
@@ -237,6 +252,21 @@ include::{snippets}/delete-v-n-f-d-example/curl-request.adoc[]
 ==== Example response
 
 include::{snippets}/delete-v-n-f-d-example/http-response.adoc[]
+
+
+=== Removing multiple Virtual Network Function Descriptors
+
+`DELETE` request +
+the ids in the request body specify the VNFDs to delete +
+{host}/api/v1/vnf-descriptors/multipledelete
+
+==== Example request
+
+include::{snippets}/vnfd-multiple-delete-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/vnfd-multiple-delete-example/http-response.adoc[]
 
 
 
@@ -450,6 +480,21 @@ include::{snippets}/nsr-delete-example/curl-request.adoc[]
 ==== Example response
 
 include::{snippets}/nsr-delete-example/http-response.adoc[]
+
+
+=== Removing multiple Network Service Records
+
+`DELETE` request +
+the ids in the request body specify the NSRs to delete +
+{host}/api/v1/ns-records/multipledelete
+
+==== Example request
+
+include::{snippets}/nsr-multiple-delete-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/nsr-multiple-delete-example/http-response.adoc[]
 
 
 
@@ -701,6 +746,24 @@ include::{snippets}/vnfpackage-delete-example/curl-request.adoc[]
 include::{snippets}/vnfpackage-delete-example/http-response.adoc[]
 
 
+=== Removing multiple VNFPackages
+
+`DELETE` request +
+the ids in the request body specify the VNFPackages to delete +
+{host}/api/v1/vnf-packages/multipledelete
+
+==== Example request
+
+include::{snippets}/vnfpackage-multiple-delete-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/vnfpackage-multiple-delete-example/http-response.adoc[]
+
+
+
+
+
 
 
 [[resources-User]]
@@ -710,7 +773,7 @@ include::{snippets}/vnfpackage-delete-example/http-response.adoc[]
 
 To work with the NFVO you have to log in as a user.
 A user can be assigned to different projects to which he has access.
-A user can have the role of an OB_ADMIN, ADMIN or GUEST each of one has different permissions.
+A user can have the role of an ADMIN, USER or GUEST each of one has different permissions.
 
 === Adding a User
 
