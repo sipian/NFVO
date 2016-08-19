@@ -84,15 +84,25 @@ app.controller('LoginController', function ($scope, AuthService, Session, $rootS
 });
 
 
-
 app.controller('IndexCtrl', function ($scope, $compile, $routeParams, serviceAPI, $interval, $cookieStore, $location, AuthService, http, $rootScope, $window) {
     $('#side-menu').metisMenu();
-
+    $scope.adminRole = "ADMIN";
+    $scope.superProject = "*";
     var url = $cookieStore.get('URL') + "/api/v1";
 
     $scope.config = {};
-
-
+    $scope.userLogged = {};
+    function loadCurrentUser() {
+        http.get(url +'/users/current')
+            .success(function (response) {
+                console.log(response);
+                $scope.userLogged = response
+            })
+            .error(function (response, status) {
+                showError(status, response);
+            });
+    };
+    loadCurrentUser();
     function getConfig() {
 
         http.get(url + '/configurations/')
@@ -146,6 +156,7 @@ app.controller('IndexCtrl', function ($scope, $compile, $routeParams, serviceAPI
             });
             $scope.numberUnits = units;
         });
+
     }
 
 
@@ -158,6 +169,7 @@ app.controller('IndexCtrl', function ($scope, $compile, $routeParams, serviceAPI
             $cookieStore.put('project', newValue);
             loadNumbers();
             getConfig();
+            loadCurrentUser();
         }
     });
 
@@ -245,18 +257,29 @@ app.controller('IndexCtrl', function ($scope, $compile, $routeParams, serviceAPI
         $scope.passwordData.new_pwd = $scope.newPassword;
         http.put(url + '/users/changepwd', JSON.stringify($scope.passwordData))
         .success(function (response) {
-          alert("The password has been successfully changed")})
-          AuthService.logout()
+          alert("The password has been successfully changed")
+          AuthService.logout()})
         .error(function (data, status) {
             console.error('STATUS: ' + status + ' DATA: ' + JSON.stringify(data));
             alert('STATUS: ' + status + ' DATA: ' + JSON.stringify(data))
-            location.reload();
+            ? "" : location.reload();
         });
     } else {
       alert("The new passwords are not the same");
     }
 
     };
+
+    $scope.admin = function() {
+      //console.log($scope.userLogged);
+
+      if($scope.userLogged.roles[0].project === $scope.superProject && $scope.userLogged.roles[0].role === $scope.adminRole) {
+        return true;
+      } else {
+        return false;
+      }
+    };
+
 
 
 });

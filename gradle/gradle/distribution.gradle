@@ -1,0 +1,45 @@
+apply plugin: "application"
+
+startScripts {
+    doLast {
+        def unixFile = file getUnixScript()
+
+        def unixTextTmp = ""
+        def unixText = unixFile.text
+        def unixDaemonScript = new File("${rootProject.projectDir}/gradle/gradle/scripts/openbaton-nfvo.pscript").text
+
+        unixText.readLines().each {
+            line ->
+                if (line.startsWith("exec")) {
+                    unixTextTmp += unixDaemonScript;
+                } else {
+                    unixTextTmp += line + '\n'
+                }
+        }
+        unixFile.text = unixTextTmp
+        unixFile.renameTo("${startScripts.outputDir}/openbaton-nfvo")
+    }
+}
+
+// to be executed just before the new release so that it gets the right version
+task makeBrewFormula() {
+
+    def brewFormula = new File("${rootProject.projectDir}/gradle/gradle/scripts/osx/openbaton-nfvo.rb")
+    String brewFormulaText = brewFormula.text
+    String brewFormulaTextNew = ""
+    String newVersion = version.toString().replace("-SNAPSHOT","")
+
+    brewFormulaText.readLines().each {
+        line ->
+            if (line.trim().startsWith("version")){
+                brewFormulaTextNew += "  version \""+newVersion + "\"" + '\n'
+            }
+            else if(line.trim().startsWith("url")){
+                brewFormulaTextNew += "  url \"https://codeload.github.com/openbaton/NFVO/legacy.tar.gz/"+newVersion+"\"" + '\n'
+            }
+            else {
+                brewFormulaTextNew += line + '\n'
+            }
+    }
+    brewFormula.text = brewFormulaTextNew
+}

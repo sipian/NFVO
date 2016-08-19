@@ -28,7 +28,6 @@ plugins {
 
     id "org.asciidoctor.convert" version "1.5.2"    //api-doc
     id 'com.github.sherter.google-java-format' version '0.3.2'
-
 }
 
 apply plugin: 'java'
@@ -81,6 +80,7 @@ apply from: 'openbaton-libs/gradle/gradle/git.release.gradle'
 
 apply from: 'gradle/gradle/packaging.nfvo.debian.gradle'
 apply from: 'gradle/gradle/packaging.innosetup.gradle'
+apply from: 'gradle/gradle/distribution.gradle'
 
 
 repositories {
@@ -90,7 +90,6 @@ repositories {
 dependencies {
     compile project(':main')
 }
-
 
 asciidoctorj {
     version = '1.5.2'
@@ -117,6 +116,5 @@ jar {   //api-doc
     from ("${asciidoctor.outputDir}") {
     }
 }
-
 
 build.dependsOn verifyGoogleJavaFormat

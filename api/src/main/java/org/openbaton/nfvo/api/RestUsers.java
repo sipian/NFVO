@@ -20,6 +20,9 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
 import org.openbaton.catalogue.security.User;
+import org.openbaton.exceptions.BadRequestException;
+import org.openbaton.exceptions.NotAllowedException;
+import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.exceptions.PasswordWeakException;
 import org.openbaton.nfvo.security.interfaces.UserManagement;
 import org.slf4j.Logger;
@@ -34,6 +37,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 import javax.validation.Valid;
 
@@ -58,7 +63,8 @@ public class RestUsers {
     produces = MediaType.APPLICATION_JSON_VALUE
   )
   @ResponseStatus(HttpStatus.CREATED)
-  public User create(@RequestBody @Valid User user) throws PasswordWeakException {
+  public User create(@RequestBody @Valid User user)
+      throws PasswordWeakException, NotAllowedException, BadRequestException, NotFoundException {
     log.info("Adding user: " + user.getUsername());
     return userManagement.add(user);
   }
@@ -70,10 +76,25 @@ public class RestUsers {
    */
   @RequestMapping(value = "{id}", method = RequestMethod.DELETE)
   @ResponseStatus(HttpStatus.NO_CONTENT)
-  public void delete(@PathVariable("id") String id) {
+  public void delete(@PathVariable("id") String id) throws NotAllowedException {
     if (userManagement != null) {
       log.info("removing User with id " + id);
       userManagement.delete(userManagement.queryById(id));
+    }
+  }
+
+  @RequestMapping(
+    value = "/multipledelete",
+    method = RequestMethod.POST,
+    consumes = MediaType.APPLICATION_JSON_VALUE
+  )
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void multipleDelete(@RequestBody @Valid List<String> ids) throws NotAllowedException {
+    if (userManagement != null) {
+      for (String id : ids) {
+        log.info("removing User with id " + id);
+        userManagement.delete(userManagement.queryById(id));
+      }
     }
   }
 
@@ -122,7 +143,8 @@ public class RestUsers {
     produces = MediaType.APPLICATION_JSON_VALUE
   )
   @ResponseStatus(HttpStatus.ACCEPTED)
-  public User update(@RequestBody @Valid User new_user) {
+  public User update(@RequestBody @Valid User new_user)
+      throws NotAllowedException, BadRequestException, NotFoundException {
     return userManagement.update(new_user);
   }
 
@@ -133,13 +155,18 @@ public class RestUsers {
   )
   @ResponseStatus(HttpStatus.ACCEPTED)
   public void changePassword(@RequestBody /*@Valid*/ JsonObject newPwd)
-      throws UnauthorizedUserException {
+      throws UnauthorizedUserException, PasswordWeakException {
     log.debug("Changing password");
-    // commented for api documentation
+
+    /* CHANGES MADE FOR CREATING THE API DOC THAT AFFECT THE NFVO's FUNCTIONALITY!!!
+       The commented code was the original code as used by the other branches,
+       but due to mockito's restrictions on final classes we were forced to remove
+       any gson calls which would otherwise result in NullPointerExceptions.
+    */
+
     //    JsonObject jsonObject = gson.fromJson(newPwd, JsonObject.class);
     //    userManagement.changePassword(
     //        jsonObject.get("old_pwd").getAsString(), jsonObject.get("new_pwd").getAsString());
-    // added for the api documentation
-    userManagement.changePassword("thatsTheOldPassword", "thatsTheNewPassword");
+    userManagement.changePassword("asdf", "asdf");
   }
 }

@@ -372,23 +372,6 @@ include::{snippets}/nsd-delete-v-n-f-d-example/http-response.adoc[]
 
 A Network Service Record is deployed from a <<resources-NetworkServiceDescriptor,NSD>>.
 
-=== Deploying a Network Service Record from a new NSD
-
-`POST` request with a <<resources-NetworkServiceDescriptor,NSD>> as JSON content of the request body +
-{host}/api/v1/ns-records/
-
-==== Request structure
-
-include::{snippets}/nsr-create-example/request-fields.adoc[]
-
-==== Example request
-
-include::{snippets}/nsr-create-example/curl-request.adoc[]
-
-==== Example response
-
-include::{snippets}/nsr-create-example/http-response.adoc[]
-
 
 === Deploying a Network Service Record from an existing NSD
 
@@ -1000,6 +983,92 @@ include::{snippets}/project-delete-example/curl-request.adoc[]
 
 include::{snippets}/project-delete-example/http-response.adoc[]
 
+
+
+
+
+
+
+
+
+
+[[resources-Key]]
+== Key
+
+=== Overview
+
+Keys are objects representing keypairs that can be used to deploy NSRs.
+
+=== Importing a Key
+
+`POST` request with a Key as JSON content in the request body +
+{host}/api/v1/keys
+
+The Key should contain the name and public key.
+
+==== Request structure
+
+include::{snippets}/key-import-example/request-fields.adoc[]
+
+==== Example request
+
+include::{snippets}/key-import-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/key-import-example/http-response.adoc[]
+
+
+=== Retrieving all Keys
+
+`GET` request +
+{host}/api/v1/keys
+
+==== response structure
+
+include::{snippets}/key-get-all-example/response-fields.adoc[]
+
+==== Example request
+
+include::{snippets}/key-get-all-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/key-get-all-example/http-response.adoc[]
+
+
+=== Retrieving a Key
+
+`GET` request +
+the id in the request is the id of the requested Key +
+{host}/api/v1/keys/{keyId}
+
+==== Response structure
+
+include::{snippets}/key-get-example/response-fields.adoc[]
+
+==== Example request
+
+include::{snippets}/key-get-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/key-get-example/http-response.adoc[]
+
+
+=== Removing a Key
+
+`DELETE` request +
+the id in the request belongs to the Key that shall be deleted +
+{host}/api/v1/keys/{keyId}
+
+==== Example request
+
+include::{snippets}/key-delete-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/key-delete-example/http-response.adoc[]
 
 
 

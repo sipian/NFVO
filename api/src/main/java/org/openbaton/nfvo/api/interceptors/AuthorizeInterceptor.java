@@ -78,20 +78,34 @@ public class AuthorizeInterceptor extends HandlerInterceptorAdapter {
         && request.getMethod().equalsIgnoreCase("get")) {
       return true;
     }
-    if ((request.getRequestURI().contains("/api/v1/users/")
-            || (request.getRequestURI().contains("/api/v1/users")))
-        && request.getMethod().equalsIgnoreCase("put")) {
-      return true;
-    }
     log.trace(request.getMethod() + " URL: " + request.getRequestURL());
     log.trace("UserManagement: " + userManagement);
     User user = userManagement.queryDB(currentUserName);
+
+    if (user.getRoles().iterator().next().getRole().ordinal() == RoleEnum.ADMIN.ordinal()) {
+      if ((request.getRequestURI().contains("/api/v1/users/")
+              || (request.getRequestURI().contains("/api/v1/users")))
+          && request.getMethod().equalsIgnoreCase("put")) {
+        return true;
+      }
+      if ((request.getRequestURI().contains("/api/v1/users/")
+              || (request.getRequestURI().contains("/api/v1/users")))
+          && request.getMethod().equalsIgnoreCase("delete")) {
+        return true;
+      }
+
+      if ((request.getRequestURI().contains("/api/v1/projects/")
+              || (request.getRequestURI().contains("/api/v1/projects")))
+          && request.getMethod().equalsIgnoreCase("delete")) {
+        return true;
+      }
+    }
 
     if (project != null) {
       if (!projectManagement.exist(project)) {
         throw new NotFoundException("Project with id " + project + " was not found");
       }
-      if (user.getRoles().iterator().next().getRole().ordinal() == RoleEnum.OB_ADMIN.ordinal()) {
+      if (user.getRoles().iterator().next().getRole().ordinal() == RoleEnum.ADMIN.ordinal()) {
         log.trace("Return true for admin");
         return true;
       }

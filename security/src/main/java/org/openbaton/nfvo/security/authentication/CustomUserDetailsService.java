@@ -84,7 +84,7 @@ public class CustomUserDetailsService implements CommandLineRunner, UserDetailsM
       ob_admin.setPassword(BCrypt.hashpw(adminPwd, BCrypt.gensalt(12)));
       Set<Role> roles = new HashSet<>();
       Role role = new Role();
-      role.setRole(RoleEnum.OB_ADMIN);
+      role.setRole(RoleEnum.ADMIN);
       role.setProject("*");
       roles.add(role);
       ob_admin.setRoles(roles);
@@ -99,7 +99,7 @@ public class CustomUserDetailsService implements CommandLineRunner, UserDetailsM
               true,
               true,
               true,
-              AuthorityUtils.createAuthorityList("OB_ADMIN:*"));
+              AuthorityUtils.createAuthorityList("ADMIN:*"));
       inMemManager.createUser(adminInMem);
     } else {
       log.debug("Admin" + inMemManager.loadUserByUsername("admin"));
@@ -137,13 +137,14 @@ public class CustomUserDetailsService implements CommandLineRunner, UserDetailsM
 
     log.debug("Creating initial Project...");
 
-    if (projectManagement.queryByName(projectDefaultName) == null) {
+    if (!projectManagement.query().iterator().hasNext()) {
       Project project = new Project();
       project.setName(projectDefaultName);
+      project.setDescription("default project");
 
       projectManagement.add(project);
       log.debug("Created project: " + project);
-    } else log.debug("Project " + projectDefaultName + " already existing");
+    } else log.debug("One project is already existing");
   }
 
   @Override

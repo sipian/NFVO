@@ -17,6 +17,7 @@
 package org.openbaton.nfvo.core.tests.api.doc;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import org.junit.Before;
@@ -32,6 +33,7 @@ import org.openbaton.catalogue.mano.common.faultmanagement.VRFaultManagementPoli
 import org.openbaton.catalogue.mano.descriptor.*;
 import org.openbaton.catalogue.mano.record.*;
 import org.openbaton.catalogue.nfvo.*;
+import org.openbaton.catalogue.security.Key;
 import org.openbaton.catalogue.security.Project;
 import org.openbaton.catalogue.security.Role;
 import org.openbaton.catalogue.security.User;
@@ -48,6 +50,7 @@ import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.io.Serializable;
 import java.util.*;
 
 import static org.mockito.Matchers.any;
@@ -100,6 +103,10 @@ public class ApiDocumentation {
   @Mock private ProjectManagement projectManagement;
 
   @InjectMocks private RestProject restProject;
+
+  @Mock private KeyManagement keyManagement;
+
+  @InjectMocks private RestKeys restKeys;
 
   private Gson gson = new Gson();
 
@@ -249,6 +256,16 @@ public class ApiDocumentation {
   private Quota quota1Return = new Quota();
   private JsonObject changePwd = new JsonObject();
   private List<String> idList = new LinkedList<>();
+  private ArrayList<String> keys = new ArrayList<>();
+  private HashMap<String, ArrayList<String>> vduVimInstances = new HashMap<>();
+  private Set<String> keyNames = new HashSet<>();
+  HashMap<String, Serializable> nsrDeploymentRequestBody = new HashMap<>();
+  private Key importKey = new Key();
+  Set<Key> keySet = new HashSet<>();
+  Key key1 = new Key();
+  Key key1return = new Key();
+  Key key2 = new Key();
+  Key key2return = new Key();
 
   @Before
   public void setUp() {
@@ -267,7 +284,8 @@ public class ApiDocumentation {
                 restVimInstances,
                 restVNFPackage,
                 restUsers,
-                restProject)
+                restProject,
+                restKeys)
             .apply(documentationConfiguration(this.restDocumentation))
             .alwaysDo(this.document)
             .build();
@@ -553,6 +571,7 @@ public class ApiDocumentation {
     vduServer.setVimInstanceName(vimInstanceNames);
     vduServer.setScale_in_out(1);
     vduServer.setVnfc(vnfcSet);
+    vduServer.setName("serverVdu1");
 
     imageSet.add("name of an image");
 
@@ -610,6 +629,7 @@ public class ApiDocumentation {
     vduClient.setVimInstanceName(vimInstanceNames);
     vduClient.setScale_in_out(2);
     vduClient.setVnfc(vnfcSet);
+    vduClient.setName("clientVdu1");
 
     iperfDep.setSource(iperfVnfdServer);
     iperfDep.setTarget(iperfVnfdClient);
@@ -899,6 +919,10 @@ public class ApiDocumentation {
     constVnfSet.add(constVnf);
     serviceDeplFlavReturn.setConstituent_vnf(constVnfSet);
     nsr1Return.setService_deployment_flavour(serviceDeplFlavReturn);
+    nsr1Return.setCreatedAt("2016.08.15 at 14:22:26 CEST");
+    keyNames.add("keyPair1");
+    keyNames.add("keyPair2");
+    nsr1Return.setKeyNames(keyNames);
 
     nsr2.setName("An example NSR");
     nsr2.setVersion("1.0");
@@ -935,6 +959,7 @@ public class ApiDocumentation {
 
     createUser.setEnabled(true);
     createUser.setPassword("supersafe");
+    createUser.setEmail("user@mail.com");
     createUser.setUsername("username");
     createUser.setRoles(roles2);
     roles1.add(role3);
@@ -952,11 +977,14 @@ public class ApiDocumentation {
     role4.setRole(Role.RoleEnum.GUEST);
     role4.setId("2135f315-1772-4ad8-85c8-caa209400ef0");
     updateUser.setEnabled(false);
-    updateUser.setUsername("username");
+    updateUser.setEnabled(false);
+    updateUser.setEmail("user@mail.com");
     updateUser.setPassword("123");
     updateUser.setRoles(roles2);
     updateUser.setId("7a327f1e-5a42-a4a5-aab0-9516248c6fca");
+    updateUser.setUsername("username");
     returnUser.setUsername("username");
+    returnUser.setEmail("user@mail.com");
     returnUser.setId("7a327f1e-5a42-a4a5-aab0-9516248c6fca");
     returnUser.setRoles(roles1);
     returnUser.setPassword("supersafe");
@@ -964,6 +992,7 @@ public class ApiDocumentation {
 
     createProject.setName("MyProject");
     createProject.setQuota(quota1);
+    createProject.setDescription("The project description");
     quota1.setCores(8);
     quota1.setFloatingIps(10);
     quota1.setInstances(10);
@@ -982,10 +1011,13 @@ public class ApiDocumentation {
     returnProject.setName("MyProject");
     returnProject.setId("5c357f1e-9a42-c4a5-bab0-3916248c6fca");
     returnProject.setQuota(quota1Return);
+    returnProject.setDescription("The project description");
     returnUpdatedProject.setName("MyUpdatedProject");
     returnUpdatedProject.setId("5c357f1e-9a42-c4a5-bab0-3916248c6fca");
     returnUpdatedProject.setQuota(quota1Return);
+    returnUpdatedProject.setDescription("The project description");
     updateProject.setName("MyUpdatedProject");
+    updateProject.setDescription("The project description");
     updateProject.setQuota(quota1);
 
     JsonPrimitive oldPwd = new JsonPrimitive("thatsTheOldPassword");
@@ -995,6 +1027,50 @@ public class ApiDocumentation {
 
     idList.add("55555c52-f952-430c-b093-45acb2bbf50e");
     idList.add("5c357f1e-9a42-c4a5-bab0-3916248c6fca");
+
+    keys.add("keypair1");
+    keys.add("keypair2");
+    keys.add("keypair3");
+
+    ArrayList<String> vimList = new ArrayList<>();
+    vimList.add("vim-instance");
+    vduVimInstances.put("clientVdu1", vimList);
+    vduVimInstances.put("serverVdu1", vimList);
+    nsrDeploymentRequestBody.put("keys", keys);
+    nsrDeploymentRequestBody.put("vduVimInstances", vduVimInstances);
+
+    importKey.setName("importedKey");
+    importKey.setPublicKey(
+        "-----BEGIN RSA PRIVATE KEY-----\n"
+            + "jH4fIILs2Z438S39DB4V6syh2Amge3UBNns329Fh4f8HR4EJG98yse3hpuDOX3i9\n"
+            + "-----END RSA PRIVATE KEY-----\n");
+
+    key1.setName("keyOne");
+    key1return.setName("keyOne");
+    key2.setName("keyTwo");
+    key2return.setName("keyTwo");
+    key1.setPublicKey(
+        "-----BEGIN RSA PRIVATE KEY-----\n"
+            + "jH4fIILs2Z438S39DB4V6syh2Amge3UBNns329Fh4f8HR4EJG98yse3hpuDOX3i9\n"
+            + "-----END RSA PRIVATE KEY-----\n");
+    key1return.setPublicKey(
+        "-----BEGIN RSA PRIVATE KEY-----\n"
+            + "jH4fIILs2Z438S39DB4V6syh2Amge3UBNns329Fh4f8HR4EJG98yse3hpuDOX3i9\n"
+            + "-----END RSA PRIVATE KEY-----\n");
+    key2.setPublicKey(
+        "-----BEGIN RSA PRIVATE KEY-----\n"
+            + "jH4fIILs2Z438S39DB4V6syh2Amge3UBNns329Fh4f8HR4EJG98yse3hpuDOX3i9\n"
+            + "-----END RSA PRIVATE KEY-----\n");
+    key2return.setPublicKey(
+        "-----BEGIN RSA PRIVATE KEY-----\n"
+            + "jH4fIILs2Z438S39DB4V6syh2Amge3UBNns329Fh4f8HR4EJG98yse3hpuDOX3i9\n"
+            + "-----END RSA PRIVATE KEY-----\n");
+    key1return.setId("5c357f1e-9a42-c4a5-bab0-3916248c6fca");
+    key2return.setId("4a317f1e-7a42-c2a5-bab0-3916248c6fca");
+    key1return.setProjectId("8a387f1e-9a42-43c7-bab0-3915719c6fca");
+    key2return.setProjectId("8a387f1e-9a42-43c7-bab0-3915719c6fca");
+    keySet.add(key1return);
+    keySet.add(key2return);
   }
 
   @Test
@@ -1641,57 +1717,53 @@ public class ApiDocumentation {
   }
 
   @Test
-  public void nsrCreateExample() throws Exception, QuotaExceededException, BadFormatException {
-    when(
-            networkServiceRecordManagement.onboard(
-                any(NetworkServiceDescriptor.class), eq("8a387f1e-9a42-43c7-bab0-3915719c6fca")))
-        .thenReturn(nsr1Return);
-
-    this.mockMvc
-        .perform(
-            post("/api/v1/ns-records")
-                .header("project-id", "8a387f1e-9a42-43c7-bab0-3915719c6fca")
-                .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e")
-                .contentType(MediaType.APPLICATION_JSON_VALUE)
-                .content(gson.toJson(iperfNsd1)))
-        .andExpect(status().isCreated())
-        .andDo(
-            document(
-                "nsr-create-example",
-                requestFields(
-                    fieldWithPath("enabled").description("_"),
-                    fieldWithPath("hb_version").description("_"),
-                    fieldWithPath("name").description("The name of the NSR"),
-                    fieldWithPath("vendor")
-                        .type(JsonFieldType.STRING)
-                        .description("The vendor of the NSR"),
-                    fieldWithPath("version").description("The version of the NSR"),
-                    fieldWithPath("vnf_dependency").description("An array of VNFDependencies"),
-                    fieldWithPath("vnfd")
-                        .description(
-                            "Array of the <<resources-VirtualNetworkFunctionDescriptor, VNFDs>> of the NSR"),
-                    fieldWithPath("vld").description("An array of VirtualLinkDescriptors"))))
-        .andDo(
-            document(
-                "nsr-create-example",
-                preprocessRequest(prettyPrint()),
-                preprocessResponse(prettyPrint())));
-  }
-
-  @Test
   public void nsrCreateWithIdExample()
       throws Exception, QuotaExceededException, BadFormatException {
-    when(
-            networkServiceRecordManagement.onboard(
-                "c60ec37a-654a-4605-93fb-5a1932db6ecf", "8a387f1e-9a42-43c7-bab0-3915719c6fca"))
-        .thenReturn(nsr1Return);
+    Mockito.doReturn(nsr1Return)
+        .when(networkServiceRecordManagement)
+        .onboard(
+            eq("c60ec37a-654a-4605-93fb-5a1932db6ecf"),
+            eq("8a387f1e-9a42-43c7-bab0-3915719c6fca"),
+            any(List.class),
+            any(Map.class));
 
     this.mockMvc
         .perform(
             post("/api/v1/ns-records/c60ec37a-654a-4605-93fb-5a1932db6ecf")
                 .header("project-id", "8a387f1e-9a42-43c7-bab0-3915719c6fca")
-                .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e"))
-        .andExpect(status().isCreated());
+                .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e")
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(gson.toJson(nsrDeploymentRequestBody)))
+        .andExpect(status().isCreated())
+        .andDo(
+            document(
+                "nsr-create-with-id-example",
+                requestFields(
+                    //                    fieldWithPath("enabled").description("_"),
+                    //                    fieldWithPath("hb_version").description("_"),
+                    fieldWithPath("keys")
+                        .description(
+                            "The keypairs that shall be used when deploying the network service. Not necessary."),
+                    //                    fieldWithPath("name").description("The name of the NSR"),
+                    fieldWithPath("vduVimInstances")
+                        .description(
+                            "A map which specifies which VIMs should be used to deploy a certain VDU. Not necessary.")
+                    //                        ,
+                    //                    fieldWithPath("vendor")
+                    //                        .type(JsonFieldType.STRING)
+                    //                        .description("The vendor of the NSR"),
+                    //                    fieldWithPath("version").description("The version of the NSR"),
+                    //                    fieldWithPath("vnf_dependency").description("An array of VNFDependencies"),
+                    //                    fieldWithPath("vnfd")
+                    //                        .description(
+                    //                            "Array of the <<resources-VirtualNetworkFunctionDescriptor, VNFDs>> of the NSR"),
+                    //                    fieldWithPath("vld").description("An array of VirtualLinkDescriptors")
+                    )))
+        .andDo(
+            document(
+                "nsr-create-with-id-example",
+                preprocessRequest(prettyPrint()),
+                preprocessResponse(prettyPrint())));
   }
 
   @Test
@@ -1736,6 +1808,9 @@ public class ApiDocumentation {
                     fieldWithPath("audit_log").type(JsonFieldType.STRING).description("_"),
                     fieldWithPath("auto_scale_policy").description("_"),
                     fieldWithPath("connection_point").description("_"),
+                    fieldWithPath("createdAt")
+                        .type(JsonFieldType.STRING)
+                        .description("The date when the NSR was created"),
                     fieldWithPath("descriptor_reference")
                         .type(JsonFieldType.STRING)
                         .description(
@@ -1744,6 +1819,7 @@ public class ApiDocumentation {
                         .type(JsonFieldType.STRING)
                         .description("Used for fault management"),
                     fieldWithPath("id").description("The id of the NSR"),
+                    fieldWithPath("keyNames").description("TODO"),
                     fieldWithPath("lifecycle_event").type(JsonFieldType.ARRAY).description("_"),
                     fieldWithPath("lifecycle_event_history")
                         .type(JsonFieldType.OBJECT)
@@ -2016,6 +2092,140 @@ public class ApiDocumentation {
                     "/api/v1/ns-records/5e074545-0a81-4de8-8494-eb67173ec565/vnfrecords/2135f315-1772-4ad8-85c8-caa209400ef0")
                 .header("project-id", "8a387f1e-9a42-43c7-bab0-3915719c6fca")
                 .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e"))
+        .andExpect(status().isNoContent());
+  }
+
+  // TODO unfortunately not working because RestDocs has problems handling the simple String in the request content.
+  //  @Test
+  //  public void keyGenerateExample() throws Exception {
+  //    when(keyManagement.generateKey("8a387f1e-9a42-43c7-bab0-3915719c6fca", "keyName"))
+  //        .thenReturn(importKey.getPublicKey());
+  //
+  //    this.mockMvc
+  //        .perform(
+  //            post("/api/v1/keys/generate")
+  //                .header("project-id", "8a387f1e-9a42-43c7-bab0-3915719c6fca")
+  //                .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e")
+  //                .contentType(MediaType.TEXT_PLAIN_VALUE)
+  //                .content("keyName"))
+  //        .andExpect(status().isCreated())
+  //        .andDo(
+  //            document(
+  //                "key-generate-example",
+  //                requestFields(fieldWithPath("[]").type(JsonFieldType.ARRAY).description("todo"))))
+  //        .andDo(
+  //            document(
+  //                "key-generate-example",
+  //                preprocessRequest(prettyPrint()),
+  //                preprocessResponse(prettyPrint())));
+  //  }
+
+  @Test
+  public void keyImportExample() throws Exception {
+    when(keyManagement.addKey(any(String.class), any(String.class), any(String.class)))
+        .thenReturn(null); // TODO change this in release 2.1.3
+
+    this.mockMvc
+        .perform(
+            post("/api/v1/keys")
+                .header("project-id", "8a387f1e-9a42-43c7-bab0-3915719c6fca")
+                .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e")
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(gson.toJson(importKey)))
+        .andExpect(status().isNoContent())
+        .andDo(
+            document(
+                "key-import-example",
+                requestFields(
+                    fieldWithPath("name").description("The Key's name"),
+                    fieldWithPath("publicKey").description("The public key"))))
+        .andDo(
+            document(
+                "key-import-example",
+                preprocessRequest(prettyPrint()),
+                preprocessResponse(prettyPrint())));
+  }
+
+  @Test
+  public void keyGetAllExample() throws Exception {
+    when(keyManagement.query("8a387f1e-9a42-43c7-bab0-3915719c6fca")).thenReturn(keySet);
+
+    this.mockMvc
+        .perform(
+            get("/api/v1/keys")
+                .header("project-id", "8a387f1e-9a42-43c7-bab0-3915719c6fca")
+                .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e"))
+        .andExpect(status().isOk())
+        .andDo(
+            document(
+                "key-get-all-example",
+                responseFields(fieldWithPath("[]").description("The array of Keys"))))
+        .andDo(
+            document(
+                "key-get-all-example",
+                preprocessRequest(prettyPrint()),
+                preprocessResponse(prettyPrint())));
+  }
+
+  @Test
+  public void keyGetExample() throws Exception {
+    when(keyManagement.queryById("8a387f1e-9a42-43c7-bab0-3915719c6fca", key1return.getId()))
+        .thenReturn(key1return);
+
+    this.mockMvc
+        .perform(
+            get("/api/v1/keys/" + key1return.getId())
+                .header("project-id", "8a387f1e-9a42-43c7-bab0-3915719c6fca")
+                .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e"))
+        .andExpect(status().isOk())
+        .andDo(
+            document(
+                "key-get-example",
+                responseFields(
+                    fieldWithPath("id").description("The Key's id"),
+                    fieldWithPath("name").description("The Key's name"),
+                    fieldWithPath("projectId")
+                        .description("The id of the project to which this Key belongs"),
+                    fieldWithPath("publicKey")
+                        .type(JsonFieldType.STRING)
+                        .description("Tey public key"))))
+        .andDo(
+            document(
+                "key-get-example",
+                preprocessRequest(prettyPrint()),
+                preprocessResponse(prettyPrint())));
+  }
+
+  @Test
+  public void keyDeleteExample() throws Exception {
+    Mockito.doNothing()
+        .when(keyManagement)
+        .delete("8a387f1e-9a42-43c7-bab0-3915719c6fca", "07241c3b-9d50-44ba-a495-9d3b96c226bd");
+
+    this.mockMvc
+        .perform(
+            delete("/api/v1/keys/07241c3b-9d50-44ba-a495-9d3b96c226bd")
+                .header("project-id", "8a387f1e-9a42-43c7-bab0-3915719c6fca")
+                .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e"))
+        .andExpect(status().isNoContent());
+  }
+
+  @Test
+  public void keyMultipleDeleteExample() throws Exception {
+    Mockito.doNothing()
+        .when(keyManagement)
+        .delete("8a387f1e-9a42-43c7-bab0-3915719c6fca", "55555c52-f952-430c-b093-45acb2bbf50e");
+
+    Mockito.doNothing()
+        .when(keyManagement)
+        .delete("8a387f1e-9a42-43c7-bab0-3915719c6fca", "5c357f1e-9a42-c4a5-bab0-3916248c6fca");
+
+    this.mockMvc
+        .perform(
+            delete("/api/v1/keys/multipledelete")
+                .header("project-id", "8a387f1e-9a42-43c7-bab0-3915719c6fca")
+                .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e")
+                .content(gson.toJson(idList)))
         .andExpect(status().isNoContent());
   }
 
@@ -2334,6 +2544,7 @@ public class ApiDocumentation {
             document(
                 "user-create-example",
                 requestFields(
+                    fieldWithPath("email").description("The user's email address"),
                     fieldWithPath("enabled")
                         .description("The user can access his account just if enabled is true"),
                     fieldWithPath("password")
@@ -2394,6 +2605,7 @@ public class ApiDocumentation {
             document(
                 "user-get-example",
                 responseFields(
+                    fieldWithPath("email").description("The user's email address"),
                     fieldWithPath("enabled")
                         .description("The user can access his account just if enabled is true"),
                     fieldWithPath("id").description("The user's id"),
@@ -2424,6 +2636,7 @@ public class ApiDocumentation {
             document(
                 "user-get-current-example",
                 responseFields(
+                    fieldWithPath("email").description("The user's email address"),
                     fieldWithPath("id").description("The user's id"),
                     fieldWithPath("username").description("The user's name"),
                     fieldWithPath("password")
@@ -2456,6 +2669,7 @@ public class ApiDocumentation {
             document(
                 "user-update-example",
                 requestFields(
+                    fieldWithPath("email").description("The user's email address"),
                     fieldWithPath("enabled")
                         .description("The user can access his account just if enabled is true"),
                     fieldWithPath("id").description("The user's id"),
@@ -2518,6 +2732,7 @@ public class ApiDocumentation {
             document(
                 "project-create-example",
                 requestFields(
+                    fieldWithPath("description").description("The project description"),
                     fieldWithPath("name").description("The project's name"),
                     fieldWithPath("quota")
                         .type(JsonFieldType.STRING)
@@ -2574,6 +2789,7 @@ public class ApiDocumentation {
             document(
                 "project-get-example",
                 responseFields(
+                    fieldWithPath("description").description("The project description"),
                     fieldWithPath("id").description("The project's id"),
                     fieldWithPath("name")
                         .type(JsonFieldType.STRING)
@@ -2603,6 +2819,7 @@ public class ApiDocumentation {
             document(
                 "project-update-example",
                 requestFields(
+                    fieldWithPath("description").description("The project description"),
                     fieldWithPath("name")
                         .type(JsonFieldType.STRING)
                         .description("The project's name"),

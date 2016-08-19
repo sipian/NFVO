@@ -23,10 +23,10 @@ ext {
 task makedeb(type: Deb, dependsOn: [jar, build]) { 
     packageName = (applicationRelease) ? "openbaton-nfvo" : "openbaton-nfvo-nightly"
     version = debianApplicationVersionFull
-    release = 1 
+    //release = 1 
     priority = 'optional'
-    arch = 'amd64'
-    maintainer = 'Open Baton Team <info@open-baton.org>'
+    arch = 'all'
+    maintainer = 'Open Baton Team <dev@openbaton.org>'
     vendor = 'Open Source (Implemented by Fraunhofer FOKUS and TUB)'
     license = 'Apache 2.0 License'
     url = 'http://openbaton.github.io/index.html'
@@ -43,6 +43,7 @@ task makedeb(type: Deb, dependsOn: [jar, build]) {
 
     // Copy files from "from path" to "into path"
     from('etc/openbaton.properties') 			                    { into '/etc/openbaton/' }                 // properties file
+    from('etc/keystore.p12') 			                            { into '/etc/openbaton/' }                 // keystore file
     from(jar.outputs.files) 				                        { into '/usr/lib/openbaton/' }             // jar file
     from('gradle/gradle/scripts/openbaton-nfvo') 	                { into '/usr/bin/'}                        // executable to run the NFVO 
     from('gradle/gradle/scripts/openbaton-nfvo') 	                { into '/etc/init.d/'}                     // executable to run the NFVO as a service (SysV)

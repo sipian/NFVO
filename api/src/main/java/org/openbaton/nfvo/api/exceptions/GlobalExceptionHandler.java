@@ -58,6 +58,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   }
 
   @ExceptionHandler({
+    BadRequestException.class,
     BadFormatException.class,
     NetworkServiceIntegrityException.class,
     WrongStatusException.class,
@@ -82,7 +83,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   }
 
   @ExceptionHandler({UnauthorizedUserException.class})
-  @ResponseStatus(value = HttpStatus.BAD_REQUEST)
+  @ResponseStatus(value = HttpStatus.FORBIDDEN)
   protected ResponseEntity<Object> handleUnauthorized(Exception e, WebRequest request) {
     if (log.isDebugEnabled()) {
       log.error("Exception was thrown -> Return message: " + e.getMessage(), e);
@@ -93,6 +94,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
 
-    return handleExceptionInternal(e, exc, headers, HttpStatus.UNAUTHORIZED, request);
+    return handleExceptionInternal(e, exc, headers, HttpStatus.FORBIDDEN, request);
   }
 }

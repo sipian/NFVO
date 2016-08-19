@@ -6,8 +6,12 @@ import org.openbaton.catalogue.security.Role.RoleEnum;
 import org.openbaton.catalogue.security.User;
 import org.openbaton.exceptions.EntityInUseException;
 import org.openbaton.exceptions.NotAllowedException;
-import org.openbaton.exceptions.NotFoundException;
-import org.openbaton.nfvo.repositories.*;
+import org.openbaton.nfvo.repositories.NetworkServiceDescriptorRepository;
+import org.openbaton.nfvo.repositories.NetworkServiceRecordRepository;
+import org.openbaton.nfvo.repositories.ProjectRepository;
+import org.openbaton.nfvo.repositories.UserRepository;
+import org.openbaton.nfvo.repositories.VimRepository;
+import org.openbaton.nfvo.repositories.VnfPackageRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -30,24 +34,34 @@ public class ProjectManagement implements org.openbaton.nfvo.security.interfaces
   @Autowired private NetworkServiceDescriptorRepository networkServiceDescriptorRepository;
   @Autowired private NetworkServiceRecordRepository networkServiceRecordRepository;
   @Autowired private VnfPackageRepository vnfPackageRepository;
+  @Autowired private UserRepository userRepository;
 
   @Override
   public Project add(Project project) {
     User currentUser = getCurrentUser();
     if (currentUser != null) {
-      if (currentUser.getRoles().iterator().next().getRole().ordinal()
-          == RoleEnum.OB_ADMIN.ordinal()) return projectRepository.save(project);
+      if (currentUser.getRoles().iterator().next().getRole().ordinal() == RoleEnum.ADMIN.ordinal())
+        return projectRepository.save(project);
     } else {
       return projectRepository.save(project);
     }
-    throw new UnauthorizedUserException("Sorry only OB_ADMIN can add project");
+    throw new UnauthorizedUserException("Sorry only ADMIN can add project");
   }
 
   @Override
-  public void delete(Project project) throws EntityInUseException {
+  public void delete(Project project) throws EntityInUseException, NotAllowedException {
+    int size = 0;
+    for (Project ignored : projectRepository.findAll()) {
+      size++;
+    }
+
+    if (size == 1) {
+      throw new NotAllowedException("You are not allowed to remove the last project");
+    }
+
     Project projectToDelete = projectRepository.findFirstById(project.getId());
     User user = getCurrentUser();
-    if (user.getRoles().iterator().next().getRole().ordinal() == RoleEnum.OB_ADMIN.ordinal()) {
+    if (user.getRoles().iterator().next().getRole().ordinal() == RoleEnum.ADMIN.ordinal()) {
 
       if (projectIsNotUsed(projectToDelete)) {
 
@@ -75,6 +89,11 @@ public class ProjectManagement implements org.openbaton.nfvo.security.interfaces
     if (!vnfPackageRepository.findByProjectId(projectToDelete.getId()).isEmpty()) return false;
     if (!networkServiceDescriptorRepository.findByProjectId(projectToDelete.getId()).isEmpty())
       return false;
+    for (User user : userRepository.findAll()) {
+      for (Role role : user.getRoles()) {
+        if (role.getProject().equals(projectToDelete.getName())) return false;
+      }
+    }
     return networkServiceRecordRepository.findByProjectId(projectToDelete.getId()).isEmpty();
   }
 
@@ -82,7 +101,7 @@ public class ProjectManagement implements org.openbaton.nfvo.security.interfaces
   public Project update(Project new_project) {
     Project project = projectRepository.findFirstById(new_project.getId());
     User user = getCurrentUser();
-    if (user.getRoles().iterator().next().getRole().ordinal() == RoleEnum.OB_ADMIN.ordinal())
+    if (user.getRoles().iterator().next().getRole().ordinal() == RoleEnum.ADMIN.ordinal())
       return projectRepository.save(new_project);
     for (Role role : user.getRoles())
       if (role.getProject().equals(project.getName())) return projectRepository.save(new_project);
@@ -99,7 +118,7 @@ public class ProjectManagement implements org.openbaton.nfvo.security.interfaces
   public Project query(String id) {
     Project project = projectRepository.findFirstById(id);
     User user = getCurrentUser();
-    if (user.getRoles().iterator().next().getRole().ordinal() == RoleEnum.OB_ADMIN.ordinal())
+    if (user.getRoles().iterator().next().getRole().ordinal() == RoleEnum.ADMIN.ordinal())
       return project;
     for (Role role : user.getRoles())
       if (role.getProject().equals(project.getName())) return project;
@@ -117,8 +136,9 @@ public class ProjectManagement implements org.openbaton.nfvo.security.interfaces
 
     List<Project> projects = new ArrayList<>();
     User user = getCurrentUser();
-    if (user.getRoles().iterator().next().getRole().ordinal() == RoleEnum.OB_ADMIN.ordinal()
-        || user.getRoles().iterator().next().getRole().ordinal() == RoleEnum.GUEST.ordinal())
+    if (user.getRoles().iterator().next().getRole().ordinal() == RoleEnum.ADMIN.ordinal()
+        || (user.getRoles().iterator().next().getRole().ordinal() == RoleEnum.GUEST.ordinal()
+            && user.getRoles().iterator().next().getProject().equals("*")))
       return projectRepository.findAll();
     for (Role role : user.getRoles()) projects.add(this.queryByName(role.getProject()));
 

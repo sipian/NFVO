@@ -40,7 +40,7 @@ public class OAuth2AuthorizationServerConfig extends AuthorizationServerConfigur
 
   @Autowired private AuthenticationManager authenticationManager;
 
-  @Autowired private TokenStore tokenStore;
+  private TokenStore tokenStore = new InMemoryTokenStore();
 
   @Autowired
   @Qualifier("customUserDetailsService")
