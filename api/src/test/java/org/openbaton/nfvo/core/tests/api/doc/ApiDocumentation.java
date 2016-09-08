@@ -54,6 +54,7 @@ import java.io.Serializable;
 import java.util.*;
 
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyDouble;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
@@ -62,6 +63,7 @@ import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuild
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.yaml.snakeyaml.tokens.Token.ID.Key;
 
 /**
  * Created by tbr on 23.09.15.
@@ -258,6 +260,7 @@ public class ApiDocumentation {
   private List<String> idList = new LinkedList<>();
   private ArrayList<String> keys = new ArrayList<>();
   private HashMap<String, ArrayList<String>> vduVimInstances = new HashMap<>();
+  private HashMap<String, Configuration> vnfrConfigurations = new HashMap<>();
   private Set<String> keyNames = new HashSet<>();
   HashMap<String, Serializable> nsrDeploymentRequestBody = new HashMap<>();
   private Key importKey = new Key();
@@ -343,6 +346,7 @@ public class ApiDocumentation {
     confParReturn.setVersion(0);
     confParReturn.setConfKey("answer");
     confParReturn.setValue("42");
+    confParReturn.setDescription("Description of the configuration parameter");
     confParametersReturn.add(confParReturn);
     iperfVnfdClientReturn.setConfigurations(configurationReturn);
     vduClientReturn.setId("10ca7355-9261-42e0-8103-53beec9d6994");
@@ -564,6 +568,7 @@ public class ApiDocumentation {
 
     confPar.setConfKey("answer");
     confPar.setValue("42");
+    confPar.setDescription("Description of the configuration parameter");
 
     vduServerSet.add(vduServer);
 
@@ -1036,8 +1041,10 @@ public class ApiDocumentation {
     vimList.add("vim-instance");
     vduVimInstances.put("clientVdu1", vimList);
     vduVimInstances.put("serverVdu1", vimList);
+    vnfrConfigurations.put("iperfserver", configuration);
     nsrDeploymentRequestBody.put("keys", keys);
     nsrDeploymentRequestBody.put("vduVimInstances", vduVimInstances);
+    nsrDeploymentRequestBody.put("configurations", vnfrConfigurations);
 
     importKey.setName("importedKey");
     importKey.setPublicKey(
@@ -1047,8 +1054,10 @@ public class ApiDocumentation {
 
     key1.setName("keyOne");
     key1return.setName("keyOne");
+    key1return.setFingerprint("42:1e:b0:08:f3:91:8f:41:75:7f:c0:ba:ce:9b:ab:0d:9c:24:13:73");
     key2.setName("keyTwo");
     key2return.setName("keyTwo");
+    key2return.setFingerprint("42:1e:b0:08:f3:91:8f:41:75:7f:c0:ba:ce:9b:ab:0d:9c:24:13:73");
     key1.setPublicKey(
         "-----BEGIN RSA PRIVATE KEY-----\n"
             + "jH4fIILs2Z438S39DB4V6syh2Amge3UBNns329Fh4f8HR4EJG98yse3hpuDOX3i9\n"
@@ -1725,6 +1734,7 @@ public class ApiDocumentation {
             eq("c60ec37a-654a-4605-93fb-5a1932db6ecf"),
             eq("8a387f1e-9a42-43c7-bab0-3915719c6fca"),
             any(List.class),
+            any(Map.class),
             any(Map.class));
 
     this.mockMvc
@@ -1739,15 +1749,18 @@ public class ApiDocumentation {
             document(
                 "nsr-create-with-id-example",
                 requestFields(
+                    fieldWithPath("configurations")
+                        .description(
+                            "The Configurations that will be used for a VNFR when deploying the network service. Not mandatory."),
                     //                    fieldWithPath("enabled").description("_"),
                     //                    fieldWithPath("hb_version").description("_"),
                     fieldWithPath("keys")
                         .description(
-                            "The keypairs that shall be used when deploying the network service. Not necessary."),
+                            "The keypairs that shall be used when deploying the network service. Not mandatory."),
                     //                    fieldWithPath("name").description("The name of the NSR"),
                     fieldWithPath("vduVimInstances")
                         .description(
-                            "A map which specifies which VIMs should be used to deploy a certain VDU. Not necessary.")
+                            "A map which specifies which VIMs should be used to deploy a certain VDU. Not mandatory.")
                     //                        ,
                     //                    fieldWithPath("vendor")
                     //                        .type(JsonFieldType.STRING)
@@ -2121,6 +2134,62 @@ public class ApiDocumentation {
   //  }
 
   @Test
+  public void nsrStartVnfcInstanceExample() throws Exception {
+    Mockito.doNothing()
+        .when(networkServiceRecordManagement)
+        .startVNFCInstance(
+            any(String.class),
+            any(String.class),
+            any(String.class),
+            any(String.class),
+            any(String.class));
+
+    this.mockMvc
+        .perform(
+            post(
+                    "/api/v1/ns-records/5e074545-0a81-4de8-8494-eb67173ec565/vnfrecords/"
+                        + "2135f315-1772-4ad8-85c8-caa209400ef0/vdunits/07241c3b-9d50-44ba-a495-9d3b96c226bd/"
+                        + "vnfcinstances/eb671c3b-9d50-44ba-0745-9d3b96c24ad8/start")
+                .header("project-id", "8a387f1e-9a42-43c7-bab0-3915719c6fca")
+                .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e")
+                .contentType(MediaType.APPLICATION_JSON_VALUE))
+        .andExpect(status().isCreated())
+        .andDo(
+            document(
+                "nsr-start-vnfc-instance-example",
+                preprocessRequest(prettyPrint()),
+                preprocessResponse(prettyPrint())));
+  }
+
+  @Test
+  public void nsrStopVnfcInstanceExample() throws Exception {
+    Mockito.doNothing()
+        .when(networkServiceRecordManagement)
+        .stopVNFCInstance(
+            any(String.class),
+            any(String.class),
+            any(String.class),
+            any(String.class),
+            any(String.class));
+
+    this.mockMvc
+        .perform(
+            post(
+                    "/api/v1/ns-records/5e074545-0a81-4de8-8494-eb67173ec565/vnfrecords/"
+                        + "2135f315-1772-4ad8-85c8-caa209400ef0/vdunits/07241c3b-9d50-44ba-a495-9d3b96c226bd/"
+                        + "vnfcinstances/eb671c3b-9d50-44ba-0745-9d3b96c24ad8/stop")
+                .header("project-id", "8a387f1e-9a42-43c7-bab0-3915719c6fca")
+                .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e")
+                .contentType(MediaType.APPLICATION_JSON_VALUE))
+        .andExpect(status().isCreated())
+        .andDo(
+            document(
+                "nsr-stop-vnfc-instance-example",
+                preprocessRequest(prettyPrint()),
+                preprocessResponse(prettyPrint())));
+  }
+
+  @Test
   public void keyImportExample() throws Exception {
     when(keyManagement.addKey(any(String.class), any(String.class), any(String.class)))
         .thenReturn(null); // TODO change this in release 2.1.3
@@ -2132,7 +2201,7 @@ public class ApiDocumentation {
                 .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e")
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
                 .content(gson.toJson(importKey)))
-        .andExpect(status().isNoContent())
+        .andExpect(status().isCreated())
         .andDo(
             document(
                 "key-import-example",
@@ -2182,6 +2251,7 @@ public class ApiDocumentation {
             document(
                 "key-get-example",
                 responseFields(
+                    fieldWithPath("fingerprint").description("The Key's fingerprint"),
                     fieldWithPath("id").description("The Key's id"),
                     fieldWithPath("name").description("The Key's name"),
                     fieldWithPath("projectId")
@@ -2625,7 +2695,7 @@ public class ApiDocumentation {
 
   @Test
   public void userGetCurrentExample() throws Exception {
-    when(userManagement.getCurrentUser()).thenReturn(returnUser);
+    when(userManagement.queryByName(any(String.class))).thenReturn(returnUser);
 
     this.mockMvc
         .perform(
@@ -2757,7 +2827,7 @@ public class ApiDocumentation {
 
   @Test
   public void projectGetAllExample() throws Exception {
-    when(projectManagement.queryForUser()).thenReturn(Arrays.asList(returnProject));
+    when(projectManagement.query()).thenReturn(Arrays.asList(returnProject));
 
     this.mockMvc
         .perform(

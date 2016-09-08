@@ -35,6 +35,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.spec.InvalidKeySpecException;
@@ -61,10 +62,11 @@ public class RestKeys {
     consumes = MediaType.APPLICATION_JSON_VALUE,
     produces = MediaType.APPLICATION_JSON_VALUE
   )
-  @ResponseStatus(HttpStatus.NO_CONTENT)
-  public void importKey(
-      @RequestHeader(value = "project-id") String projectId, @RequestBody @Valid Key key) {
-    keyManagement.addKey(projectId, key.getName(), key.getPublicKey());
+  @ResponseStatus(HttpStatus.CREATED)
+  public Key importKey(
+      @RequestHeader(value = "project-id") String projectId, @RequestBody @Valid Key key)
+      throws UnsupportedEncodingException, NoSuchAlgorithmException, InvalidKeySpecException {
+    return keyManagement.addKey(projectId, key.getName(), key.getPublicKey());
   }
 
   /**

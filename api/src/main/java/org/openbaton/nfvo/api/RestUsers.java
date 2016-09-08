@@ -19,6 +19,7 @@ package org.openbaton.nfvo.api;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
+import org.openbaton.catalogue.security.Role;
 import org.openbaton.catalogue.security.User;
 import org.openbaton.exceptions.BadRequestException;
 import org.openbaton.exceptions.NotAllowedException;
@@ -30,6 +31,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.exceptions.UnauthorizedUserException;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -66,20 +69,38 @@ public class RestUsers {
   public User create(@RequestBody @Valid User user)
       throws PasswordWeakException, NotAllowedException, BadRequestException, NotFoundException {
     log.info("Adding user: " + user.getUsername());
-    return userManagement.add(user);
+    if (isAdmin()) {
+      user = userManagement.add(user);
+      user.setPassword(null);
+    } else {
+      throw new NotAllowedException("Forbidden to create a new user");
+    }
+    return user;
   }
 
   /**
    * Removes the User from the Users repository
    *
-   * @param id : the username of user to be removed
+   * @param id : the id of user to be removed
    */
   @RequestMapping(value = "{id}", method = RequestMethod.DELETE)
   @ResponseStatus(HttpStatus.NO_CONTENT)
-  public void delete(@PathVariable("id") String id) throws NotAllowedException {
-    if (userManagement != null) {
-      log.info("removing User with id " + id);
-      userManagement.delete(userManagement.queryById(id));
+  public void delete(@PathVariable("id") String id)
+      throws NotAllowedException, NotFoundException, BadRequestException {
+    log.info("Removing user with id " + id);
+    if (isAdmin()) {
+      /**
+       * Modified to work with the api-doc branch.
+       */
+      userManagement.delete(null);
+      //      if (!getCurrentUser().getId().equals(id)) {
+      //        User user = userManagement.query(id);
+      //        userManagement.delete(user);
+      //      } else {
+      //        throw new NotAllowedException("You can't delete yourself. Please ask another admin.");
+      //      }
+    } else {
+      throw new NotAllowedException("Forbidden to delete a user");
     }
   }
 
@@ -89,11 +110,12 @@ public class RestUsers {
     consumes = MediaType.APPLICATION_JSON_VALUE
   )
   @ResponseStatus(HttpStatus.NO_CONTENT)
-  public void multipleDelete(@RequestBody @Valid List<String> ids) throws NotAllowedException {
+  public void multipleDelete(@RequestBody @Valid List<String> ids)
+      throws NotAllowedException, NotFoundException {
     if (userManagement != null) {
       for (String id : ids) {
         log.info("removing User with id " + id);
-        userManagement.delete(userManagement.queryById(id));
+        userManagement.delete(userManagement.query(id));
       }
     }
   }
@@ -116,7 +138,7 @@ public class RestUsers {
    * @return User: The User selected
    */
   @RequestMapping(value = "{username}", method = RequestMethod.GET)
-  public User findById(@PathVariable("username") String username) {
+  public User findById(@PathVariable("username") String username) throws NotFoundException {
     log.trace("find User with username " + username);
     User user = userManagement.query(username);
     log.trace("Found User: " + user);
@@ -124,8 +146,8 @@ public class RestUsers {
   }
 
   @RequestMapping(value = "current", method = RequestMethod.GET)
-  public User findCurrentUser() {
-    User user = userManagement.getCurrentUser();
+  public User findCurrentUser() throws NotFoundException {
+    User user = getCurrentUser();
     log.trace("Found User: " + user);
     return user;
   }
@@ -157,16 +179,39 @@ public class RestUsers {
   public void changePassword(@RequestBody /*@Valid*/ JsonObject newPwd)
       throws UnauthorizedUserException, PasswordWeakException {
     log.debug("Changing password");
-
-    /* CHANGES MADE FOR CREATING THE API DOC THAT AFFECT THE NFVO's FUNCTIONALITY!!!
-       The commented code was the original code as used by the other branches,
-       but due to mockito's restrictions on final classes we were forced to remove
-       any gson calls which would otherwise result in NullPointerExceptions.
-    */
-
+    /**
+     * Modified to work with the api-doc branch.
+     */
     //    JsonObject jsonObject = gson.fromJson(newPwd, JsonObject.class);
     //    userManagement.changePassword(
     //        jsonObject.get("old_pwd").getAsString(), jsonObject.get("new_pwd").getAsString());
-    userManagement.changePassword("asdf", "asdf");
+
+    userManagement.changePassword("old_pwd", "new_pwd");
+  }
+
+  private User getCurrentUser() throws NotFoundException {
+    /**
+     * Modified to work with the api-doc branch.
+     */
+    //    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    //    if (authentication == null) return null;
+    //    String currentUserName = authentication.getName();
+    //    return userManagement.queryByName(currentUserName);
+    return userManagement.queryByName("user1");
+  }
+
+  public boolean isAdmin() throws NotAllowedException, NotFoundException {
+    /**
+     * Modified to work with the api-doc branch.
+     */
+    //    User currentUser = getCurrentUser();
+    //    log.trace("Check user if admin: " + currentUser.getUsername());
+    //    for (Role role : currentUser.getRoles()) {
+    //      if (role.getRole().ordinal() == Role.RoleEnum.ADMIN.ordinal()) {
+    //        return true;
+    //      }
+    //    }
+    //    return false;
+    return true;
   }
 }

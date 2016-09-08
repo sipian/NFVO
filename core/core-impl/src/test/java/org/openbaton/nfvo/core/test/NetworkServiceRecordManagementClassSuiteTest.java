@@ -58,6 +58,7 @@ import org.openbaton.catalogue.nfvo.VnfmManagerEndpoint;
 import org.openbaton.exceptions.BadFormatException;
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.exceptions.PluginException;
+import org.openbaton.exceptions.MissingParameterException;
 import org.openbaton.exceptions.QuotaExceededException;
 import org.openbaton.exceptions.VimDriverException;
 import org.openbaton.exceptions.VimException;
@@ -75,6 +76,7 @@ import org.openbaton.nfvo.repositories.VimRepository;
 import org.openbaton.nfvo.repositories.VnfmEndpointRepository;
 import org.openbaton.nfvo.vim_interfaces.vim.Vim;
 import org.openbaton.nfvo.vim_interfaces.vim.VimBroker;
+import org.openbaton.exceptions.VimDriverException;
 import org.openbaton.vnfm.interfaces.manager.VnfmManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,6 +84,9 @@ import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import javax.jms.JMSException;
+import javax.naming.NamingException;
+import javax.persistence.NoResultException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -230,7 +235,7 @@ public class NetworkServiceRecordManagementClassSuiteTest {
   public void nsrManagementOnboardTest1()
       throws NotFoundException, InterruptedException, ExecutionException, NamingException,
           VimException, VimDriverException, JMSException, BadFormatException,
-          QuotaExceededException, PluginException {
+          QuotaExceededException, PluginException, MissingParameterException {
     final NetworkServiceDescriptor nsd_exp = createNetworkServiceDescriptor();
     when(nsrRepository.save(any(NetworkServiceRecord.class)))
         .thenAnswer(
@@ -270,14 +275,14 @@ public class NetworkServiceRecordManagementClassSuiteTest {
                 add(vnfmManagerEndpoint);
               }
             });
-    nsrManagement.onboard(nsd_exp, projectId, null, null);
+    nsrManagement.onboard(nsd_exp, projectId, null, null, null);
   }
 
   @Test
   public void nsrManagementOnboardTest2()
       throws NotFoundException, InterruptedException, ExecutionException, NamingException,
           VimException, VimDriverException, JMSException, BadFormatException,
-          QuotaExceededException, PluginException {
+          QuotaExceededException, PluginException, MissingParameterException {
     /**
      * Initial settings
      */
@@ -325,14 +330,14 @@ public class NetworkServiceRecordManagementClassSuiteTest {
     /**
      * Real Method
      */
-    nsrManagement.onboard(networkServiceDescriptor.getId(), projectId, null, null);
+    nsrManagement.onboard(networkServiceDescriptor.getId(), projectId, null, null, null);
   }
 
   @Test
   public void nsrManagementOnboardTest3()
       throws NotFoundException, InterruptedException, ExecutionException, NamingException,
           VimException, VimDriverException, JMSException, BadFormatException,
-          QuotaExceededException, PluginException {
+          QuotaExceededException, PluginException, MissingParameterException {
     /**
      * Initial settings
      */
@@ -383,7 +388,7 @@ public class NetworkServiceRecordManagementClassSuiteTest {
               }
             });
 
-    nsrManagement.onboard(networkServiceDescriptor.getId(), projectId, null, null);
+    nsrManagement.onboard(networkServiceDescriptor.getId(), projectId, null, null, null);
   }
 
   @Test

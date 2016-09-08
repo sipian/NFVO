@@ -544,6 +544,39 @@ include::{snippets}/nsr-delete-vnfr-example/curl-request.adoc[]
 include::{snippets}/nsr-delete-vnfr-example/http-response.adoc[]
 
 
+=== Starting a VNFCInstance
+
+VirtualNetworkFunctionRecords contain VDUs which themselves contain VNFCInstances. +
+This API request starts a VNFCInstance. +
+`POST` request +
+{host}/api/v1/ns-records/{id}/vnfrecords/{idVnf}/vdunits/{idVdu}/vnfcinstances/{idVNFCI}/start
+
+==== Example request
+
+include::{snippets}/nsr-start-vnfc-instance-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/nsr-start-vnfc-instance-example/http-response.adoc[]
+
+
+=== Stopping a VNFCInstance
+
+VirtualNetworkFunctionRecords contain VDUs which themselves contain VNFCInstances. +
+This API request stops a VNFCInstance. +
+`POST` request +
+{host}/api/v1/ns-records/{id}/vnfrecords/{idVnf}/vdunits/{idVdu}/vnfcinstances/{idVNFCI}/stop
+
+==== Example request
+
+include::{snippets}/nsr-stop-vnfc-instance-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/nsr-stop-vnfc-instance-example/http-response.adoc[]
+
+
+
 
 [[resources-VimInstance]]
 == VimInstance

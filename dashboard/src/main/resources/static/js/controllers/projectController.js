@@ -1,13 +1,14 @@
 var app = angular.module('app');
-app.controller('ProjectCtrl', function ($scope, serviceAPI, $routeParams, http, $cookieStore, AuthService, $window) {
+app.controller('ProjectCtrl', function ($scope, serviceAPI, $routeParams, http, $cookieStore, AuthService, $window, $interval) {
 
-    var url = $cookieStore.get('URL') + "/api/v1/projects/";
+    var url = "http://localhost:8080" + "/api/v1/projects/";
+    // var url = $cookieStore.get('URL') + "/api/v1/projects/";
 
     $scope.alerts = [];
     $scope.closeAlert = function (index) {
         $scope.alerts.splice(index, 1);
     };
-
+  
     loadTable();
 
     $scope.projectObj = {

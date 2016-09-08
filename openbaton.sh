@@ -156,8 +156,8 @@ function start_fg {
 
 
 function stop {
-    if screen -list | grep "openbaton"; then
-	    screen -S openbaton -p 0 -X stuff "exit$(printf \\r)"
+    if screen -list | grep "openbaton" > /dev/null ; then
+	    screen -S openbaton -p 0 -X stuff $'\003'
     fi
 }
 
@@ -173,7 +173,7 @@ function kill {
 
 
 function compile {
-    ./gradlew build -x test 
+    ./gradlew goJF build -x test 
 }
 
 function tests {

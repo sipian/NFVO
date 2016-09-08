@@ -7,6 +7,16 @@
 [![Join the chat at https://gitter.im/openbaton/NFVO](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/openbaton/NFVO?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Documentation Status](https://readthedocs.org/projects/openbaton-docs/badge/?version=stable)](http://openbaton-docs.readthedocs.io/en/stable/?badge=stable)
 
+# **THIS BRANCH IS JUST FOR GENERATING THE API DOCUMENTATION. DO NOT USE IT TO RUN THE NFVO SINCE IT WILL NOT WORK!**
+Use the develop or master branch instead or one of the tagged versions. 
+If you want to generate the api documentation execute: 
+
+```bash
+./gradlew test build
+```
+
+You will find the generated documents in the directory *api/build/api-documentation*.
+
 # Open Baton NFV Orchestrator
 
 Open Baton NFVO is an open source project providing a reference implementation of the NFVO based on the ETSI NFV MANO specification. 

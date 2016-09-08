@@ -19,6 +19,7 @@ package org.openbaton.nfvo.api;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
+import com.google.gson.reflect.TypeToken;
 import org.openbaton.catalogue.mano.descriptor.NetworkServiceDescriptor;
 import org.openbaton.catalogue.mano.descriptor.VNFComponent;
 import org.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
@@ -27,12 +28,14 @@ import org.openbaton.catalogue.mano.record.PhysicalNetworkFunctionRecord;
 import org.openbaton.catalogue.mano.record.VNFCInstance;
 import org.openbaton.catalogue.mano.record.VNFRecordDependency;
 import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
+import org.openbaton.catalogue.nfvo.Configuration;
 import org.openbaton.catalogue.nfvo.DependencyParameters;
 import org.openbaton.catalogue.nfvo.VNFCDependencyParameters;
 import org.openbaton.catalogue.nfvo.messages.Interfaces.NFVMessage;
 import org.openbaton.exceptions.BadFormatException;
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.exceptions.PluginException;
+import org.openbaton.exceptions.MissingParameterException;
 import org.openbaton.exceptions.QuotaExceededException;
 import org.openbaton.exceptions.VimDriverException;
 import org.openbaton.exceptions.VimException;
@@ -40,6 +43,7 @@ import org.openbaton.exceptions.WrongStatusException;
 import org.openbaton.nfvo.api.exceptions.StateException;
 import org.openbaton.nfvo.api.model.DependencyObject;
 import org.openbaton.nfvo.core.interfaces.NetworkServiceRecordManagement;
+import org.openbaton.exceptions.VimDriverException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,6 +57,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.lang.reflect.Type;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
@@ -69,10 +74,46 @@ public class RestNetworkServiceRecord {
   @Autowired private Gson gson;
 
   /**
+   * This operation allows submitting and validating a Network Service Descriptor (NSD), including
+   * any related VNFFGD and VLD.
+   *
+   * @param networkServiceDescriptor : the Network Service Descriptor to be created
+   * @return NetworkServiceRecord: the Network Service Descriptor filled with id and values from
+   * core
+   */
+  @RequestMapping(
+    method = RequestMethod.POST,
+    consumes = MediaType.APPLICATION_JSON_VALUE,
+    produces = MediaType.APPLICATION_JSON_VALUE
+  )
+  @ResponseStatus(HttpStatus.CREATED)
+  public NetworkServiceRecord create(
+      @RequestBody @Valid NetworkServiceDescriptor networkServiceDescriptor,
+      @RequestHeader(value = "project-id") String projectId,
+      @RequestBody String bodyJson)
+      throws InterruptedException, ExecutionException, VimException, NotFoundException,
+          BadFormatException, VimDriverException, QuotaExceededException, PluginException,
+          MissingParameterException {
+
+    JsonObject jsonObject = gson.fromJson(bodyJson, JsonObject.class);
+    return networkServiceRecordManagement.onboard(
+        networkServiceDescriptor,
+        projectId,
+        gson.fromJson(jsonObject.getAsJsonArray("keys"), List.class),
+        gson.fromJson(jsonObject.getAsJsonObject("vduVimInstances"), Map.class),
+        gson.fromJson(jsonObject.getAsJsonObject("configurations"), Map.class));
+  }
+
+  /**
    * @param id
    * @param projectId
-   * @param bodyJson the body json is: { "vduVimInstances":{ "vduName":["viminstancename"],
-   * "vduName2":["viminstancename2"] }, "keys":["keyname1", "keyname2"] }
+   * @param jsonObject the body json is: { "vduVimInstances":{ "vduName1":["viminstancename"],
+   * "vduName2":["viminstancename2"] }, "keys":["keyname1", "keyname2"], "configurations":{
+   * "vnfrName1":{"name":"conf1", "configurationParameters":[{"confKey":"key1", "value":"value1",
+   * "description":"description1"}, {"confKey":"key2", "value":"value2",
+   * "description":"description2"}]}, "vnfrName2":{"name":"conf2",
+   * "configurationParameters":[{"confKey":"key1", "value":"value1", "description":"description1"},
+   * {"confKey":"key2", "value":"value2", "description":"description2"}]} } }
    * @return
    * @throws InterruptedException
    * @throws ExecutionException
@@ -95,22 +136,21 @@ public class RestNetworkServiceRecord {
       @RequestHeader(value = "project-id") String projectId,
       @RequestBody(required = false) JsonObject jsonObject)
       throws InterruptedException, ExecutionException, VimException, NotFoundException,
-          BadFormatException, VimDriverException, QuotaExceededException, PluginException {
+          BadFormatException, VimDriverException, QuotaExceededException, PluginException,
+          MissingParameterException {
 
     log.debug("Json Body is" + jsonObject);
-
-    /* CHANGES MADE FOR CREATING THE API DOC THAT AFFECT THE NFVO's FUNCTIONALITY!!!
-       The commented code was the original code as used by the other branches,
-       but due to mockito's restrictions on final classes we were forced to remove
-       any gson calls which would otherwise result in NullPointerExceptions.
-    */
-
+    Type mapType = new TypeToken<Map<String, Configuration>>() {}.getType();
+    /**
+     * Modified to work with the api-doc branch.
+     */
     //    return networkServiceRecordManagement.onboard(
     //        id,
     //        projectId,
     //        gson.fromJson(jsonObject.getAsJsonArray("keys"), List.class),
-    //        gson.fromJson(jsonObject.getAsJsonObject("vduVimInstances"), Map.class));
-    return networkServiceRecordManagement.onboard(id, projectId, new LinkedList(), new HashMap());
+    //        gson.fromJson(jsonObject.getAsJsonObject("vduVimInstances"), Map.class),
+    //        (Map) gson.fromJson(jsonObject.get("configurations"), mapType));
+    return networkServiceRecordManagement.onboard(id, projectId, null, null, null);
   }
 
   /**
@@ -291,6 +331,40 @@ public class RestNetworkServiceRecord {
       throws NotFoundException, BadFormatException, WrongStatusException {
     log.trace("Received: " + component);
     networkServiceRecordManagement.addVNFCInstance(id, idVnf, component, projectId);
+  }
+
+  @RequestMapping(
+    value = "{id}/vnfrecords/{idVnf}/vdunits/{idVdu}/vnfcinstances/{idVNFCI}/start",
+    method = RequestMethod.POST,
+    consumes = MediaType.APPLICATION_JSON_VALUE
+  )
+  @ResponseStatus(HttpStatus.CREATED)
+  public void startVNFCInstance(
+      @PathVariable("id") String id,
+      @PathVariable("idVnf") String idVnf,
+      @PathVariable("idVdu") String idVdu,
+      @PathVariable("idVNFCI") String idVNFCI,
+      @RequestHeader(value = "project-id") String projectId)
+      throws NotFoundException, BadFormatException, WrongStatusException {
+    log.debug("start a VNF component instance");
+    networkServiceRecordManagement.startVNFCInstance(id, idVnf, idVdu, idVNFCI, projectId);
+  }
+
+  @RequestMapping(
+    value = "{id}/vnfrecords/{idVnf}/vdunits/{idVdu}/vnfcinstances/{idVNFCI}/stop",
+    method = RequestMethod.POST,
+    consumes = MediaType.APPLICATION_JSON_VALUE
+  )
+  @ResponseStatus(HttpStatus.CREATED)
+  public void stopVNFCInstance(
+      @PathVariable("id") String id,
+      @PathVariable("idVnf") String idVnf,
+      @PathVariable("idVdu") String idVdu,
+      @PathVariable("idVNFCI") String idVNFCI,
+      @RequestHeader(value = "project-id") String projectId)
+      throws NotFoundException, BadFormatException, WrongStatusException {
+    log.debug("stop a VNF component instance");
+    networkServiceRecordManagement.stopVNFCInstance(id, idVnf, idVdu, idVNFCI, projectId);
   }
 
   /////// Fault management utilities

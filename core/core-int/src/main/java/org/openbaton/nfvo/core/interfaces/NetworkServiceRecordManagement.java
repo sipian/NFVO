@@ -21,6 +21,7 @@ import org.openbaton.catalogue.mano.descriptor.VNFComponent;
 import org.openbaton.catalogue.mano.record.NetworkServiceRecord;
 import org.openbaton.catalogue.mano.record.VNFCInstance;
 import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
+import org.openbaton.catalogue.nfvo.Configuration;
 import org.openbaton.catalogue.nfvo.messages.Interfaces.NFVMessage;
 import org.openbaton.exceptions.BadFormatException;
 import org.openbaton.exceptions.NotFoundException;
@@ -28,6 +29,7 @@ import org.openbaton.exceptions.PluginException;
 import org.openbaton.exceptions.QuotaExceededException;
 import org.openbaton.exceptions.VimDriverException;
 import org.openbaton.exceptions.VimException;
+import org.openbaton.exceptions.MissingParameterException;
 import org.openbaton.exceptions.WrongStatusException;
 
 import java.util.List;
@@ -43,9 +45,11 @@ public interface NetworkServiceRecordManagement {
    * This operation allows submitting and validating a Network Service Descriptor (NSD), including
    * any related VNFFGD and VLD.
    */
-  NetworkServiceRecord onboard(String nsd_id, String projectId, List keys, Map vduVimInstances)
+  NetworkServiceRecord onboard(
+      String nsd_id, String projectId, List keys, Map vduVimInstances, Map configurations)
       throws InterruptedException, ExecutionException, VimException, NotFoundException,
-          BadFormatException, VimDriverException, QuotaExceededException, PluginException;
+          BadFormatException, VimDriverException, QuotaExceededException, PluginException,
+          MissingParameterException;
 
   /**
    * This operation allows submitting and validating a Network Service Descriptor (NSD), including
@@ -55,9 +59,11 @@ public interface NetworkServiceRecordManagement {
       NetworkServiceDescriptor networkServiceDescriptor,
       String projectId,
       List keys,
-      Map vduVimInstances)
+      Map vduVimInstances,
+      Map configurations)
       throws ExecutionException, InterruptedException, VimException, NotFoundException,
-          BadFormatException, VimDriverException, QuotaExceededException, PluginException;
+          BadFormatException, VimDriverException, QuotaExceededException, PluginException,
+          MissingParameterException;
 
   /**
    * This operation allows updating a Network Service Descriptor (NSD), including any related VNFFGD
@@ -172,6 +178,36 @@ public interface NetworkServiceRecordManagement {
   void deleteVNFCInstance(String id, String idVnf, String idVdu, String idVNFCI, String projectId)
       throws NotFoundException, WrongStatusException, InterruptedException, ExecutionException,
           VimException, PluginException;
+
+  /**
+   * This method will start a {@Link VNFCInstance} of a NetworkServiceRecord from a specific
+   * VirtualDeploymentUnit of a specific VirtualNetworkFunctionRecord.
+   *
+   * @param id
+   * @param idVnf
+   * @param idVdu
+   * @param idVNFCI
+   * @param projectId
+   * @throws NotFoundException
+   * @throws WrongStatusException
+   */
+  void startVNFCInstance(String id, String idVnf, String idVdu, String idVNFCI, String projectId)
+      throws NotFoundException, WrongStatusException;
+
+  /**
+   * This method will stop a {@Link VNFCInstance} of a NetworkServiceRecord from a specific
+   * VirtualDeploymentUnit of a specific VirtualNetworkFunctionRecord.
+   *
+   * @param id
+   * @param idVnf
+   * @param idVdu
+   * @param idVNFCI
+   * @param projectId
+   * @throws NotFoundException
+   * @throws WrongStatusException
+   */
+  void stopVNFCInstance(String id, String idVnf, String idVdu, String idVNFCI, String projectId)
+      throws NotFoundException, WrongStatusException;
 
   void switchToRedundantVNFCInstance(
       String id,
