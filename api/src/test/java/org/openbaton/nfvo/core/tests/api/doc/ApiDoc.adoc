@@ -1,4 +1,5 @@
 = NFVO API
+v2.2.0
 :doctype: book
 :toc: left
 :sectanchors:

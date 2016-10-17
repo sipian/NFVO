@@ -25,9 +25,10 @@ buildscript {     //api-doc
 plugins {
     id 'net.researchgate.release' version '2.3.4'
     id "nebula.os-package" version "2.2.6"
-
     id "org.asciidoctor.convert" version "1.5.2"    //api-doc
     id 'com.github.sherter.google-java-format' version '0.3.2'
+    // For the managing of the Licences
+    id "com.github.hierynomus.license" version "0.13.1"
 }
 
 apply plugin: 'java'
@@ -53,7 +54,6 @@ project.ext {
      * Application Related Version
      */
     applicationVersion = version
-    applicationVersionDebian = "1";
 
     applicationRelease = isApplicationRelease()
     applicationDate = new Date()
@@ -119,3 +119,4 @@ jar {   //api-doc
 }
 
 build.dependsOn verifyGoogleJavaFormat
+compileJava.dependsOn tasks.googleJavaFormat

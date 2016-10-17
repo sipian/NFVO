@@ -811,6 +811,7 @@ public class ApiDocumentation {
     nsr1Return.setConnection_point(new HashSet<ConnectionPoint>());
     nsr1Return.setMonitoring_parameter(new HashSet<String>());
     nsr1Return.setProjectId("8a387f1e-9a42-43c7-bab0-3915719c6fca");
+    nsr1Return.setTask("Onboarding");
 
     vnfrReturn.setId("293e6a52-c6df-40c0-8f8a-58911bb9319b");
     vnfrReturn.setHb_version(4);
@@ -1857,6 +1858,9 @@ public class ApiDocumentation {
                     fieldWithPath("status")
                         .type(JsonFieldType.OBJECT)
                         .description("The status of the NSR"),
+                    fieldWithPath("task")
+                        .type(JsonFieldType.STRING)
+                        .description("The task currently executed by the NSR"),
                     fieldWithPath("vendor")
                         .type(JsonFieldType.STRING)
                         .description("The vendor of the NSR"),

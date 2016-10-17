@@ -6,6 +6,7 @@
 [![Build Status](https://travis-ci.org/openbaton/NFVO.svg?branch=master)](https://travis-ci.org/openbaton/NFVO)
 [![Join the chat at https://gitter.im/openbaton/NFVO](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/openbaton/NFVO?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Documentation Status](https://readthedocs.org/projects/openbaton-docs/badge/?version=stable)](http://openbaton-docs.readthedocs.io/en/stable/?badge=stable)
+<<<<<<< HEAD
 
 # **THIS BRANCH IS JUST FOR GENERATING THE API DOCUMENTATION. DO NOT USE IT TO RUN THE NFVO SINCE IT WILL NOT WORK!**
 Use the develop or master branch instead or one of the tagged versions. 

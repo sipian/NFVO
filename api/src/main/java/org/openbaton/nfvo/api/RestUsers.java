@@ -185,7 +185,6 @@ public class RestUsers {
     //    JsonObject jsonObject = gson.fromJson(newPwd, JsonObject.class);
     //    userManagement.changePassword(
     //        jsonObject.get("old_pwd").getAsString(), jsonObject.get("new_pwd").getAsString());
-
     userManagement.changePassword("old_pwd", "new_pwd");
   }
 

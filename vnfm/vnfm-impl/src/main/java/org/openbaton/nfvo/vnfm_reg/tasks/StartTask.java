@@ -66,8 +66,8 @@ public class StartTask extends AbstractTask {
     log.info("Started VNFR: " + virtualNetworkFunctionRecord.getName());
     VirtualNetworkFunctionRecord existing =
         vnfrRepository.findFirstById(virtualNetworkFunctionRecord.getId());
-    log.debug("vnfr arrived version= " + virtualNetworkFunctionRecord.getHb_version());
-    log.debug("vnfr existing version= " + existing.getHb_version());
+    log.trace("vnfr arrived version= " + virtualNetworkFunctionRecord.getHb_version());
+    log.trace("vnfr existing version= " + existing.getHb_version());
 
     for (VirtualDeploymentUnit virtualDeploymentUnit : virtualNetworkFunctionRecord.getVdu()) {
       for (VNFCInstance vnfcInstance : virtualDeploymentUnit.getVnfc_instance()) {

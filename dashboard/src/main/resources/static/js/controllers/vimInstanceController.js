@@ -9,7 +9,6 @@ angular.module('app').controller('vimInstanceCtrl', function ($scope, $routePara
 
     loadVIM();
 
-        loadVIM();
 
     $scope.textTopologyJson = '';
     $scope.changeText = function (text) {
@@ -108,19 +107,8 @@ angular.module('app').controller('vimInstanceCtrl', function ($scope, $routePara
         }
     };
 
-        $scope.changeSelection = function (selection) {
-            $scope.vimInstanceJson = {};
-            $scope.vimInstanceJson = dataCenterJ[selection];
-        };
-        $scope.changeLocation = function (location) {
-            $scope.locationRadio = location;
-        };
-
     $scope.nameFilter = null;
 
-        $scope.saveDataCenter = function (vimInstanceJson) {
-            if ($scope.file !== '') {
-                vimInstanceJson = $scope.file;
 
     $scope.changeSelection = function (selection) {
         $scope.vimInstanceJson = {};
@@ -130,18 +118,6 @@ angular.module('app').controller('vimInstanceCtrl', function ($scope, $routePara
         $scope.locationRadio = location;
     };
 
-            $('.modal').modal('hide');
-            console.log(vimInstanceJson);
-            http.post(url, vimInstanceJson)
-                .success(function (response) {
-                    showOk('Data Center created!');
-                    console.log(response);
-                    $scope.selection = $scope.dataSelect[0];
-                    $scope.vimInstanceJson = {};
-                })
-                .error(function (data, status) {
-                    showError(status, data);
-                });
 
     $scope.saveDataCenter = function (vimInstanceJson) {
         if ($scope.file !== '') {
@@ -161,7 +137,6 @@ angular.module('app').controller('vimInstanceCtrl', function ($scope, $routePara
             .error(function (data, status) {
                 showError(status, data);
             });
-        };
 
     };
 
@@ -200,13 +175,14 @@ angular.module('app').controller('vimInstanceCtrl', function ($scope, $routePara
         $scope.alerts.splice(index, 1);
     };
 
+    $scope.nameFilter = null;
 
     $scope.deleteData = function (id) {
         http.delete(url + id)
             .success(function (response) {
                 showOk('Vim Instance deleted with id ' + id + '.');
                 loadVIM();
-
+                
             })
             .error(function (data, status) {
                 showError(status, data);
@@ -232,28 +208,6 @@ angular.module('app').controller('vimInstanceCtrl', function ($scope, $routePara
                 .error(function (data, status) {
                     showError(status, data);
                 });
-        };
-
-        function loadVIM() {
-            if (!angular.isUndefined($routeParams.vimInstanceId))
-                http.get(url + $routeParams.vimInstanceId)
-                    .success(function (response, status) {
-                        console.log(response);
-                        $scope.vimInstance = response;
-                        $scope.vimInstanceJSON = JSON.stringify(response, undefined, 4);
-
-                    }).error(function (data, status) {
-                        showError(status, data);
-                    });
-            else {
-                http.get(url)
-                    .success(function (response) {
-                        $scope.vimInstances = response;
-                    })
-                    .error(function (data, status) {
-                        showError(status, data);
-                    });
-            }
         }
     }
 

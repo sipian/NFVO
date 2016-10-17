@@ -347,6 +347,8 @@ public class NetworkServiceRecordManagement
       VNFComponent component,
       String mode)
       throws BadFormatException, NotFoundException {
+
+    networkServiceRecord.setTask("Scaling out");
     List<String> componentNetworks = new ArrayList<>();
 
     for (VNFDConnectionPoint connectionPoint : component.getConnection_point()) {
@@ -377,7 +379,7 @@ public class NetworkServiceRecordManagement
 
     //        virtualDeploymentUnit.getVnfc().add(component);
     vnfcRepository.save(component);
-    nsrRepository.save(networkServiceRecord);
+    networkServiceRecord = nsrRepository.save(networkServiceRecord);
     log.debug("new VNFComponent is " + component);
 
     VNFRecordDependency dependencyTarget =
@@ -647,10 +649,11 @@ public class NetworkServiceRecordManagement
       throw new UnauthorizedUserException(
           "VDU not under the project chosen, are you trying to hack us? Just kidding, it's a bug :)");
     }
+    networkServiceRecord.setTask("Healing");
     VNFCInstance standByVNFCInstance = null;
     for (VNFCInstance vnfcInstance : virtualDeploymentUnit.getVnfc_instance()) {
       log.debug("current vnfcinstance " + vnfcInstance + " in state" + vnfcInstance.getState());
-      if (vnfcInstance.getState() != null && vnfcInstance.getState().equals(mode)) {
+      if (vnfcInstance.getState() != null && vnfcInstance.getState().equalsIgnoreCase(mode)) {
         standByVNFCInstance = vnfcInstance;
         log.debug("VNFComponentInstance in " + mode + " mode FOUND :" + standByVNFCInstance);
       }
@@ -706,6 +709,8 @@ public class NetworkServiceRecordManagement
     List<VNFRecordDependency> dependencySource =
         dependencyManagement.getDependencyForAVNFRecordSource(virtualNetworkFunctionRecord);
 
+    networkServiceRecord.setTask("Scaling in");
+
     if (!dependencySource.isEmpty()) {
       for (VNFRecordDependency dependency : dependencySource) {
         List<String> paramsToRemove = new ArrayList<>();
@@ -749,7 +754,7 @@ public class NetworkServiceRecordManagement
           log.debug("VNFCInstance status is: " + instanceInVNFR.getState());
           // if vnfciStarted is not null then the START message received refers to the VNFCInstance
           if (instanceInVNFR.getState() != null) {
-            if ((instanceInVNFR.getState().equals("ACTIVE"))
+            if ((instanceInVNFR.getState().equalsIgnoreCase("active"))
                 && (networkServiceRecord.getStatus().ordinal() != Status.ERROR.ordinal())) {
               stopVNFR = false;
               break;
@@ -777,8 +782,10 @@ public class NetworkServiceRecordManagement
     log.debug("Publishing event: " + event);
     publisher.dispatchEvent(eventNFVO);
 
-    if (networkServiceRecord.getStatus().ordinal() == Status.SCALING.ordinal())
+    if (networkServiceRecord.getStatus().ordinal() == Status.SCALING.ordinal()) {
       networkServiceRecord.setStatus(Status.ACTIVE);
+      networkServiceRecord.setTask("Scaled in");
+    }
     nsrRepository.save(networkServiceRecord);
   }
 
@@ -873,6 +880,7 @@ public class NetworkServiceRecordManagement
     networkServiceRecord = NSRUtils.createNetworkServiceRecord(networkServiceDescriptor);
     SimpleDateFormat format = new SimpleDateFormat("yyyy.MM.dd 'at' HH:mm:ss z");
     networkServiceRecord.setCreatedAt(format.format(new Date()));
+    networkServiceRecord.setTask("Onboarding");
     networkServiceRecord.setKeyNames(new HashSet<String>());
     if (body != null && body.getKeys() != null && !body.getKeys().isEmpty()) {
       for (Key key : body.getKeys()) {

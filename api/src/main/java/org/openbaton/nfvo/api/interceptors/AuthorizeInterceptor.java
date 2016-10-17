@@ -2,7 +2,6 @@ package org.openbaton.nfvo.api.interceptors;
 
 import org.openbaton.catalogue.security.Project;
 import org.openbaton.catalogue.security.Role;
-import org.openbaton.catalogue.security.Role.RoleEnum;
 import org.openbaton.catalogue.security.User;
 import org.openbaton.exceptions.NotAllowedException;
 import org.openbaton.exceptions.NotFoundException;
@@ -14,7 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.common.exceptions.UnauthorizedUserException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
 
@@ -45,13 +43,15 @@ public class AuthorizeInterceptor extends HandlerInterceptorAdapter {
       if (!(authentication instanceof AnonymousAuthenticationToken)) {
         String currentUserName = authentication.getName();
         return checkAuthorization(projectId, request, currentUserName);
-      } else /*if (request.getMethod().equalsIgnoreCase("get"))*/ {
+      } else {
         log.trace(
             "AnonymousUser requesting method: "
                 + request.getMethod()
                 + " on "
                 + request.getRequestURI());
-        if (request.getMethod().equalsIgnoreCase("get") && request.getRequestURI().equals("/")) {
+        if (isLogin(request)) {
+          return true;
+        } else if (alwaysAllowedPath(request)) {
           return true;
         } else {
           return false;
@@ -67,23 +67,29 @@ public class AuthorizeInterceptor extends HandlerInterceptorAdapter {
     }
   }
 
+  private boolean isLogin(HttpServletRequest request) {
+    return request.getMethod().equalsIgnoreCase("get") && request.getRequestURI().equals("/");
+  }
+
   private boolean checkAuthorization(
       String project, HttpServletRequest request, String currentUserName)
       throws NotFoundException, NotAllowedException {
 
     log.trace("Current User: " + currentUserName);
-    log.trace("projectId: " + project);
-    log.trace(request.getMethod() + " URI: " + request.getRequestURI());
+    log.trace("projectId: \"" + project + "\"");
+    log.trace(request.getMethod() + " on URI: " + request.getRequestURI());
     log.trace("UserManagement: " + userManagement);
     User user = userManagement.queryByName(currentUserName);
-    for (Role role : user.getRoles()) {
-      if (role.getRole().ordinal() == Role.RoleEnum.ADMIN.ordinal()) {
-        return true;
-      }
-    }
-    if (project != null && !project.isEmpty()) {
-      if (!projectManagement.exist(project)) {
+
+    if (project != null /*&& !project.isEmpty()*/) {
+
+      if (projectIsNecessary(request) && !projectManagement.exist(project)) {
         throw new NotFoundException("Project with id " + project + " was not found");
+      }
+      for (Role role : user.getRoles()) {
+        if (role.getRole().ordinal() == Role.RoleEnum.ADMIN.ordinal()) {
+          return true;
+        }
       }
       for (Role role : user.getRoles()) {
         String pjName = projectManagement.query(project).getName();
@@ -108,5 +114,24 @@ public class AuthorizeInterceptor extends HandlerInterceptorAdapter {
       }
     }
     return false;
+  }
+
+  //TODO realize this configurable
+  private boolean alwaysAllowedPath(HttpServletRequest request) {
+    return (request.getMethod().equalsIgnoreCase("post")
+            && request.getRequestURI().equals("/admin/v1/vnfm-register"))
+        || (request.getMethod().equalsIgnoreCase("post")
+            && request.getRequestURI().equals("/admin/v1/vnfm-unregister"))
+        || (request.getMethod().equalsIgnoreCase("post")
+            && request.getRequestURI().startsWith("/admin/v1/vnfm-core-"));
+  }
+
+  //TODO realize this configurable
+  private boolean projectIsNecessary(HttpServletRequest request) {
+    return !((request.getRequestURI().equals("/api/v1/projects"))
+        || (request.getRequestURI().equals("/api/v1/projects/"))
+        || (request.getRequestURI().equals("/api/v1/users/current"))
+        || (request.getRequestURI().equals("/api/v1/users"))
+        || (request.getRequestURI().equals("/api/v1/users/")));
   }
 }

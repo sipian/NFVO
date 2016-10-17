@@ -6,7 +6,7 @@ angular.module('app', ['ngTable','ngRoute', 'ngSanitize', 'ui.bootstrap', 'ngCoo
                 templateUrl: 'login.html',
                 controller: 'LoginController'
             }).
-            when('/', {
+            when('/main', {
                 templateUrl: 'pages/contents.html',
                 controller: 'IndexCtrl'
             }).
@@ -142,8 +142,12 @@ angular.module('app', ['ngTable','ngRoute', 'ngSanitize', 'ui.bootstrap', 'ngCoo
                 templateUrl: 'pages/keypairs/keypairs.html',
                 controller: 'keyPairsCtrl'
             }).
+            when('/marketplace', {
+                templateUrl: 'pages/marketplace/marketplace.html',
+                controller: 'marketCtrl'
+            }).
             otherwise({
-//                        redirectTo: '/'
+                        redirectTo: '/main'
             });
         $locationProvider.html5Mode(false);
     });
@@ -172,7 +176,6 @@ angular.module('app').run(function ($rootScope, $location, $cookieStore, $route)
 
     });
 });
-
 
 /*
  * MenuCtrl
