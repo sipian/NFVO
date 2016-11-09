@@ -1,17 +1,18 @@
 /*
- * Copyright (c) 2015 Fraunhofer FOKUS
+ * Copyright (c) 2016 Open Baton (http://www.openbaton.org)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
 
 package org.openbaton.nfvo.api;
@@ -31,8 +32,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.exceptions.UnauthorizedUserException;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -71,7 +70,7 @@ public class RestUsers {
     log.info("Adding user: " + user.getUsername());
     if (isAdmin()) {
       user = userManagement.add(user);
-      user.setPassword(null);
+      //      user.setPassword(null);
     } else {
       throw new NotAllowedException("Forbidden to create a new user");
     }
@@ -147,7 +146,7 @@ public class RestUsers {
 
   @RequestMapping(value = "current", method = RequestMethod.GET)
   public User findCurrentUser() throws NotFoundException {
-    User user = getCurrentUser();
+    User user = userManagement.getCurrentUser();
     log.trace("Found User: " + user);
     return user;
   }
@@ -188,22 +187,11 @@ public class RestUsers {
     userManagement.changePassword("old_pwd", "new_pwd");
   }
 
-  private User getCurrentUser() throws NotFoundException {
-    /**
-     * Modified to work with the api-doc branch.
-     */
-    //    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-    //    if (authentication == null) return null;
-    //    String currentUserName = authentication.getName();
-    //    return userManagement.queryByName(currentUserName);
-    return userManagement.queryByName("user1");
-  }
-
   public boolean isAdmin() throws NotAllowedException, NotFoundException {
     /**
      * Modified to work with the api-doc branch.
      */
-    //    User currentUser = getCurrentUser();
+    //    User currentUser = userManagement.getCurrentUser();
     //    log.trace("Check user if admin: " + currentUser.getUsername());
     //    for (Role role : currentUser.getRoles()) {
     //      if (role.getRole().ordinal() == Role.RoleEnum.ADMIN.ordinal()) {

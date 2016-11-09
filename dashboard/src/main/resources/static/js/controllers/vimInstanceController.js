@@ -1,3 +1,20 @@
+/*
+ * Copyright (c) 2016 Open Baton (http://www.openbaton.org)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
 angular.module('app').controller('vimInstanceCtrl', function ($scope, $routeParams, http, $location, AuthService, $cookieStore, $interval) {
 
     var url = $cookieStore.get('URL') + "/api/v1/datacenters/";
@@ -107,6 +124,7 @@ angular.module('app').controller('vimInstanceCtrl', function ($scope, $routePara
         }
     };
 
+
     $scope.nameFilter = null;
 
 
@@ -175,14 +193,13 @@ angular.module('app').controller('vimInstanceCtrl', function ($scope, $routePara
         $scope.alerts.splice(index, 1);
     };
 
-    $scope.nameFilter = null;
 
     $scope.deleteData = function (id) {
         http.delete(url + id)
             .success(function (response) {
                 showOk('Vim Instance deleted with id ' + id + '.');
                 loadVIM();
-                
+
             })
             .error(function (data, status) {
                 showError(status, data);

@@ -1,17 +1,18 @@
 /*
- * Copyright (c) 2015 Fraunhofer FOKUS
+ * Copyright (c) 2016 Open Baton (http://www.openbaton.org)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
 
 package org.openbaton.nfvo.core.test;
@@ -41,6 +42,7 @@ import org.openbaton.catalogue.nfvo.VimInstance;
 import org.openbaton.catalogue.nfvo.VnfmManagerEndpoint;
 import org.openbaton.exceptions.BadFormatException;
 import org.openbaton.exceptions.CyclicDependenciesException;
+import org.openbaton.exceptions.EntityInUseException;
 import org.openbaton.exceptions.NetworkServiceIntegrityException;
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.exceptions.WrongStatusException;
@@ -112,7 +114,7 @@ public class NetworkServiceDescriptorManagementClassSuiteTest {
   @Test
   public void nsdManagementEnableTest()
       throws NotFoundException, WrongStatusException, BadFormatException,
-          NetworkServiceIntegrityException, CyclicDependenciesException {
+          NetworkServiceIntegrityException, CyclicDependenciesException, EntityInUseException {
     NetworkServiceDescriptor nsd_exp = createNetworkServiceDescriptor();
     when(vimRepository.findByProjectId(anyString()))
         .thenReturn(
@@ -135,7 +137,7 @@ public class NetworkServiceDescriptorManagementClassSuiteTest {
   @Test
   public void nsdManagementDisableTest()
       throws NotFoundException, BadFormatException, NetworkServiceIntegrityException,
-          CyclicDependenciesException, WrongStatusException {
+          CyclicDependenciesException, WrongStatusException, EntityInUseException {
     NetworkServiceDescriptor nsd_exp = createNetworkServiceDescriptor();
     nsd_exp.setEnabled(true);
     when(vimRepository.findAll())
@@ -165,7 +167,7 @@ public class NetworkServiceDescriptorManagementClassSuiteTest {
   }
 
   @Test
-  public void nsdManagementQueryTest() throws WrongStatusException {
+  public void nsdManagementQueryTest() throws WrongStatusException, EntityInUseException {
     when(nsdRepository.findAll()).thenReturn(new ArrayList<NetworkServiceDescriptor>());
     when(nsdRepository.findByProjectId(anyString()))
         .thenReturn(new ArrayList<NetworkServiceDescriptor>());
@@ -233,7 +235,7 @@ public class NetworkServiceDescriptorManagementClassSuiteTest {
   @Test
   public void nsdManagementUpdateTest()
       throws NotFoundException, BadFormatException, NetworkServiceIntegrityException,
-          CyclicDependenciesException, WrongStatusException {
+          CyclicDependenciesException, WrongStatusException, EntityInUseException {
     when(nsdRepository.findAll()).thenReturn(new ArrayList<NetworkServiceDescriptor>());
     when(nsdRepository.findByProjectId(anyString()))
         .thenReturn(new ArrayList<NetworkServiceDescriptor>());

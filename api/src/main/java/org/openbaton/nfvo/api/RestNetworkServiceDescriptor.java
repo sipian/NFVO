@@ -1,30 +1,37 @@
 /*
- * Copyright (c) 2015 Fraunhofer FOKUS
+ * Copyright (c) 2016 Open Baton (http://www.openbaton.org)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
 
 package org.openbaton.nfvo.api;
+
+import com.google.gson.JsonObject;
 
 import org.openbaton.catalogue.mano.common.Security;
 import org.openbaton.catalogue.mano.descriptor.NetworkServiceDescriptor;
 import org.openbaton.catalogue.mano.descriptor.PhysicalNetworkFunctionDescriptor;
 import org.openbaton.catalogue.mano.descriptor.VNFDependency;
 import org.openbaton.catalogue.mano.descriptor.VirtualNetworkFunctionDescriptor;
+import org.openbaton.exceptions.AlreadyExistingException;
 import org.openbaton.exceptions.BadFormatException;
 import org.openbaton.exceptions.CyclicDependenciesException;
+import org.openbaton.exceptions.EntityInUseException;
+import org.openbaton.exceptions.IncompatibleVNFPackage;
 import org.openbaton.exceptions.NetworkServiceIntegrityException;
 import org.openbaton.exceptions.NotFoundException;
+import org.openbaton.exceptions.PluginException;
 import org.openbaton.exceptions.VimException;
 import org.openbaton.exceptions.WrongStatusException;
 import org.openbaton.nfvo.core.interfaces.NetworkServiceDescriptorManagement;
@@ -41,7 +48,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -82,6 +89,30 @@ public class RestNetworkServiceDescriptor {
   }
 
   /**
+   * This operation allows downloading and onboarding an NSD from the Marketplace
+   *
+   * @param link : link to the Network Service Descriptor to be created
+   * @return networkServiceDescriptor: the Network Service Descriptor filled with id and values from
+   * core
+   */
+  @RequestMapping(
+    value = "/marketdownload",
+    method = RequestMethod.POST,
+    consumes = MediaType.APPLICATION_JSON_VALUE
+  )
+  @ResponseStatus(HttpStatus.CREATED)
+  public NetworkServiceDescriptor marketDownload(
+      @RequestBody JsonObject link, @RequestHeader(value = "project-id") String projectId)
+      throws BadFormatException, CyclicDependenciesException, NetworkServiceIntegrityException,
+          NotFoundException, IOException, PluginException, VimException, IncompatibleVNFPackage,
+          AlreadyExistingException {
+
+    log.debug("LINK: " + link);
+    String downloadlink = link.get("link").getAsString();
+    return networkServiceDescriptorManagement.onboardFromMarketplace(downloadlink, projectId);
+  }
+
+  /**
    * This operation is used to remove a disabled Network Service Descriptor
    *
    * @param id of Network Service Descriptor
@@ -90,7 +121,7 @@ public class RestNetworkServiceDescriptor {
   @ResponseStatus(HttpStatus.NO_CONTENT)
   public void delete(
       @PathVariable("id") String id, @RequestHeader(value = "project-id") String projectId)
-      throws WrongStatusException {
+      throws WrongStatusException, EntityInUseException {
     networkServiceDescriptorManagement.delete(id, projectId);
   }
 
@@ -113,7 +144,7 @@ public class RestNetworkServiceDescriptor {
   public void multipleDelete(
       @RequestBody @Valid List<String> ids, @RequestHeader(value = "project-id") String projectId)
       throws InterruptedException, ExecutionException, WrongStatusException, VimException,
-          NotFoundException {
+          NotFoundException, EntityInUseException {
     for (String id : ids) networkServiceDescriptorManagement.delete(id, projectId);
   }
 
@@ -201,7 +232,7 @@ public class RestNetworkServiceDescriptor {
       @PathVariable("idNsd") String idNsd,
       @PathVariable("idVfn") String idVfn,
       @RequestHeader(value = "project-id") String projectId)
-      throws NotFoundException {
+      throws NotFoundException, EntityInUseException {
     networkServiceDescriptorManagement.deleteVnfDescriptor(idNsd, idVfn, projectId);
   }
 

@@ -224,7 +224,8 @@ public class ApiDocumentation {
   private VirtualNetworkFunctionRecord vnfrReturn = new VirtualNetworkFunctionRecord();
   private Configuration requires = new Configuration();
   private Configuration provides = new Configuration();
-  private Set<LifecycleEvent> lifecycleEventHistoryReturnSet = new HashSet<LifecycleEvent>();
+  private List<HistoryLifecycleEvent> lifecycleEventHistoryReturnSet =
+      new LinkedList<HistoryLifecycleEvent>();
   private List<NetworkServiceRecord> nsrSetReturn = new LinkedList<NetworkServiceRecord>();
   private DeploymentFlavour flavourReturn = new DeploymentFlavour();
   private Set<DeploymentFlavour> flavourSetReturn = new HashSet<DeploymentFlavour>();
@@ -821,11 +822,12 @@ public class ApiDocumentation {
     vnfrReturn.setConfigurations(configurationReturn);
     vnfrReturn.setLifecycle_event(leServerSetReturn);
     vnfrReturn.setProjectId("8a387f1e-9a42-43c7-bab0-3915719c6fca");
-    LifecycleEvent granted = new LifecycleEvent();
+    HistoryLifecycleEvent granted = new HistoryLifecycleEvent();
     granted.setId("07c1ac29-0e2e-4d9f-b8a2-2cc1f3684328");
-    granted.setVersion(1);
-    granted.setEvent(Event.GRANTED);
-    granted.setLifecycle_events(new LinkedList<String>());
+    granted.setExecutedAt("2016.11.08-22:29:59:417-CET");
+    granted.setDescription(
+        "All the resources that are contained in this VNFR were granted to be deployed in the chosen vim(s)");
+    granted.setEvent("GRANTED");
     lifecycleEventHistoryReturnSet.add(granted);
     vnfrReturn.setLifecycle_event_history(lifecycleEventHistoryReturnSet);
     vnfrReturn.setMonitoring_parameter(new HashSet<String>());
@@ -2515,6 +2517,8 @@ public class ApiDocumentation {
                         .description(
                             "A link to an image that shall be used for instantiating the VMs"),
                     fieldWithPath("name").description("The name of the VNFPackage"),
+                    fieldWithPath("nfvo_version")
+                        .description("The NFVO version that supports this VNFPackage"),
                     fieldWithPath("projectId")
                         .description("The id of the project to which this VNFPackage belongs"),
                     fieldWithPath("scripts")
@@ -2524,7 +2528,9 @@ public class ApiDocumentation {
                         .type(JsonFieldType.STRING)
                         .description(
                             "A link to a git repository, from which the script files can be downloaded"),
-                    fieldWithPath("version").description("The version of the VNFPackage"))))
+                    fieldWithPath("version").description("The version of the VNFPackage"),
+                    fieldWithPath("vimTypes")
+                        .description("The types of VIM Instances for this VNFPackage to use"))))
         .andDo(
             document(
                 "vnfpackage-get-example",
@@ -2699,7 +2705,7 @@ public class ApiDocumentation {
 
   @Test
   public void userGetCurrentExample() throws Exception {
-    when(userManagement.queryByName(any(String.class))).thenReturn(returnUser);
+    when(userManagement.getCurrentUser()).thenReturn(returnUser);
 
     this.mockMvc
         .perform(

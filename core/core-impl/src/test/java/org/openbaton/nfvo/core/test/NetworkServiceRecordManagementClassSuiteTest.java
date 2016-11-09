@@ -1,17 +1,18 @@
 /*
- * Copyright (c) 2015 Fraunhofer FOKUS
+ * Copyright (c) 2016 Open Baton (http://www.openbaton.org)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
 
 package org.openbaton.nfvo.core.test;
@@ -56,6 +57,7 @@ import org.openbaton.catalogue.nfvo.Quota;
 import org.openbaton.catalogue.nfvo.VimInstance;
 import org.openbaton.catalogue.nfvo.VnfmManagerEndpoint;
 import org.openbaton.exceptions.BadFormatException;
+import org.openbaton.exceptions.BadRequestException;
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.exceptions.PluginException;
 import org.openbaton.exceptions.MissingParameterException;
@@ -231,7 +233,7 @@ public class NetworkServiceRecordManagementClassSuiteTest {
   public void nsrManagementOnboardTest1()
       throws NotFoundException, InterruptedException, ExecutionException, NamingException,
           VimException, VimDriverException, JMSException, BadFormatException,
-          QuotaExceededException, PluginException, MissingParameterException {
+          QuotaExceededException, PluginException, MissingParameterException, BadRequestException {
     final NetworkServiceDescriptor nsd_exp = createNetworkServiceDescriptor();
     when(nsrRepository.save(any(NetworkServiceRecord.class)))
         .thenAnswer(
@@ -278,7 +280,7 @@ public class NetworkServiceRecordManagementClassSuiteTest {
   public void nsrManagementOnboardTest2()
       throws NotFoundException, InterruptedException, ExecutionException, NamingException,
           VimException, VimDriverException, JMSException, BadFormatException,
-          QuotaExceededException, PluginException, MissingParameterException {
+          QuotaExceededException, PluginException, MissingParameterException, BadRequestException {
     /**
      * Initial settings
      */
@@ -333,7 +335,7 @@ public class NetworkServiceRecordManagementClassSuiteTest {
   public void nsrManagementOnboardTest3()
       throws NotFoundException, InterruptedException, ExecutionException, NamingException,
           VimException, VimDriverException, JMSException, BadFormatException,
-          QuotaExceededException, PluginException, MissingParameterException {
+          QuotaExceededException, PluginException, MissingParameterException, BadRequestException {
     /**
      * Initial settings
      */
@@ -496,6 +498,9 @@ public class NetworkServiceRecordManagementClassSuiteTest {
             VimInstance vimInstance = new VimInstance();
             vimInstance.setName("vim_instance");
             vimInstance.setType("test");
+            ArrayList<String> vimInstanceNames = new ArrayList<>();
+            vimInstanceNames.add("test");
+            vdu.setVimInstanceName(vimInstanceNames);
             add(vdu);
           }
         });

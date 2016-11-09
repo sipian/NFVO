@@ -1,31 +1,39 @@
 /*
- * Copyright (c) 2015 Fraunhofer FOKUS
+ * Copyright (c) 2016 Open Baton (http://www.openbaton.org)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
 
 package org.openbaton.nfvo.core.interfaces;
 
 import org.openbaton.catalogue.mano.common.Security;
-import org.openbaton.exceptions.WrongStatusException;
 import org.openbaton.catalogue.mano.descriptor.NetworkServiceDescriptor;
 import org.openbaton.catalogue.mano.descriptor.PhysicalNetworkFunctionDescriptor;
 import org.openbaton.catalogue.mano.descriptor.VNFDependency;
 import org.openbaton.catalogue.mano.descriptor.VirtualNetworkFunctionDescriptor;
+import org.openbaton.exceptions.AlreadyExistingException;
 import org.openbaton.exceptions.BadFormatException;
 import org.openbaton.exceptions.CyclicDependenciesException;
+import org.openbaton.exceptions.EntityInUseException;
+import org.openbaton.exceptions.IncompatibleVNFPackage;
 import org.openbaton.exceptions.NetworkServiceIntegrityException;
 import org.openbaton.exceptions.NotFoundException;
+import org.openbaton.exceptions.PluginException;
+import org.openbaton.exceptions.VimException;
+import org.openbaton.exceptions.WrongStatusException;
+
+import java.io.IOException;
 
 import javax.persistence.NoResultException;
 
@@ -42,6 +50,11 @@ public interface NetworkServiceDescriptorManagement {
       NetworkServiceDescriptor networkServiceDescriptor, String projectId)
       throws NotFoundException, BadFormatException, NetworkServiceIntegrityException,
           CyclicDependenciesException;
+
+  NetworkServiceDescriptor onboardFromMarketplace(String link, String project_id)
+      throws BadFormatException, CyclicDependenciesException, NetworkServiceIntegrityException,
+          NotFoundException, IOException, PluginException, VimException, IncompatibleVNFPackage,
+          AlreadyExistingException;
 
   /**
    * This operation allows disabling a Network Service Descriptor, so that it is not possible to
@@ -91,7 +104,7 @@ public interface NetworkServiceDescriptorManagement {
    *
    * @param id
    */
-  void delete(String id, String projectId) throws WrongStatusException;
+  void delete(String id, String projectId) throws WrongStatusException, EntityInUseException;
 
   /**
    * Removes the VNFDescriptor into NSD
@@ -100,7 +113,7 @@ public interface NetworkServiceDescriptorManagement {
    * @param idNsd of NSD
    * @param idVnfd of VNFD
    */
-  void deleteVnfDescriptor(String nsd, String idNsd, String idVnfd);
+  void deleteVnfDescriptor(String nsd, String idNsd, String idVnfd) throws EntityInUseException;
 
   /**
    * Returns the VirtualNetworkFunctionDescriptor selected by idVnfd into NSD with idNsd

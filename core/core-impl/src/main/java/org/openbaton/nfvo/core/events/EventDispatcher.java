@@ -1,17 +1,18 @@
 /*
- * Copyright (c) 2015 Fraunhofer FOKUS
+ * Copyright (c) 2016 Open Baton (http://www.openbaton.org)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
 
 package org.openbaton.nfvo.core.events;
@@ -26,6 +27,7 @@ import org.openbaton.catalogue.mano.record.NetworkServiceRecord;
 import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.openbaton.catalogue.nfvo.ApplicationEventNFVO;
 import org.openbaton.catalogue.nfvo.EventEndpoint;
+import org.openbaton.exceptions.MissingParameterException;
 import org.openbaton.nfvo.common.internal.model.EventNFVO;
 import org.openbaton.nfvo.core.interfaces.EventSender;
 import org.openbaton.nfvo.repositories.EventEndpointRepository;
@@ -58,9 +60,14 @@ class EventDispatcher
   @Autowired private org.openbaton.nfvo.core.interfaces.EventManagement eventManagement;
 
   @Override
-  public EventEndpoint register(String endpoint_json) {
+  public EventEndpoint register(String endpoint_json) throws MissingParameterException {
 
     EventEndpoint endpoint = gson.fromJson(endpoint_json, EventEndpoint.class);
+
+    if (endpoint.getProjectId() == null) {
+      throw new MissingParameterException("The Event Endpoint needs a project id");
+    }
+
     if (!endpointAlreadyExists(endpoint)) return saveEventEndpoint(endpoint);
     return getEndpointAlreadyRegistered(endpoint);
   }

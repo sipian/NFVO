@@ -1,3 +1,20 @@
+/*
+ * Copyright (c) 2016 Open Baton (http://www.openbaton.org)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
 package org.openbaton.tosca.parser;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
@@ -8,6 +25,7 @@ import org.openbaton.catalogue.nfvo.NFVImage;
 import org.openbaton.catalogue.nfvo.Script;
 import org.openbaton.catalogue.nfvo.VNFPackage;
 import org.openbaton.catalogue.nfvo.VimInstance;
+import org.openbaton.exceptions.IncompatibleVNFPackage;
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.exceptions.PluginException;
 import org.openbaton.exceptions.VimException;
@@ -52,8 +70,9 @@ public class CSARParser {
   private Set<Script> scripts = new HashSet<>();
   private ByteArrayOutputStream metadata;
   private ByteArrayOutputStream template;
-  private ArrayList<String> image_names = new ArrayList<>();
+  private ArrayList<String> imageNames = new ArrayList<>();
   private ByteArrayOutputStream vnfMetadata;
+  private ArrayList<String> folderNames = new ArrayList<>();
 
   private String entryDefinitions = null;
 
@@ -66,11 +85,13 @@ public class CSARParser {
    * Helper functions - Reading a csar and creating a proper vnf package
    *
    */
+
   private void readFiles(InputStream csar_file) throws IOException, NotFoundException {
 
     ZipInputStream zipStream = new ZipInputStream(csar_file);
     ZipEntry entry;
     this.scripts.clear();
+    this.folderNames.clear();
     this.template = new ByteArrayOutputStream();
     this.metadata = new ByteArrayOutputStream();
 
@@ -85,12 +106,12 @@ public class CSARParser {
           baos.write(buffer, 0, count);
         }
 
-        String file_name = entry.getName();
+        String fileName = entry.getName();
 
-        if (file_name.endsWith(".meta")) {
+        if (fileName.toLowerCase().endsWith(".meta")) {
           this.metadata = baos;
-        } else if (file_name.endsWith(".yaml")) {
-          if (file_name.endsWith("Metadata.yaml")) {
+        } else if (fileName.toLowerCase().endsWith(".yaml")) {
+          if (fileName.toLowerCase().endsWith("metadata.yaml")) {
             this.vnfMetadata = baos;
           } else {
             this.template = baos;
@@ -98,10 +119,10 @@ public class CSARParser {
         } else {
 
           Script script = new Script();
-          String[] splittedName = file_name.split("/");
+          String[] splittedName = fileName.split("/");
           if (splittedName.length > 2) {
-            String scriptName =
-                splittedName[splittedName.length - 2] + "_" + splittedName[splittedName.length - 1];
+            String scriptName = splittedName[1] + "!_!" + splittedName[splittedName.length - 1];
+            folderNames.add(splittedName[1]);
             script.setName(scriptName);
 
           } else script.setName(splittedName[splittedName.length - 1]);
@@ -134,7 +155,7 @@ public class CSARParser {
     String entryDefinition = "Entry-Definitions:";
     String image = "image:";
 
-    image_names.clear();
+    imageNames.clear();
 
     while ((strLine = br.readLine()) != null) {
 
@@ -143,7 +164,7 @@ public class CSARParser {
             strLine.substring(entryDefinition.length(), strLine.length()).trim();
       }
       if (strLine.contains(image)) {
-        this.image_names.add(strLine.substring(image.length(), strLine.length()).trim());
+        this.imageNames.add(strLine.substring(image.length(), strLine.length()).trim());
       }
     }
 
@@ -177,7 +198,7 @@ public class CSARParser {
       VNFPackage vnfPackage,
       VirtualNetworkFunctionDescriptor virtualNetworkFunctionDescriptor,
       String projectId)
-      throws NotFoundException, PluginException, VimException {
+      throws NotFoundException, PluginException, VimException, IncompatibleVNFPackage {
 
     Map<String, Object> metadata;
     NFVImage image = new NFVImage();
@@ -188,7 +209,7 @@ public class CSARParser {
     YamlJsonParser yaml = new YamlJsonParser();
     metadata = yaml.parseMap(new String(this.vnfMetadata.toByteArray()));
     //Get configuration for NFVImage
-    String[] REQUIRED_PACKAGE_KEYS = new String[] {"name", "image"};
+    String[] REQUIRED_PACKAGE_KEYS = new String[] {"name", "image", "vim_types"};
     for (String requiredKey : REQUIRED_PACKAGE_KEYS) {
       if (!metadata.containsKey(requiredKey)) {
         throw new NotFoundException("Not found " + requiredKey + " of VNFPackage in Metadata.yaml");
@@ -198,8 +219,27 @@ public class CSARParser {
             "Not defined " + requiredKey + " of VNFPackage in Metadata.yaml");
       }
     }
+    vnfPackage.setName((String) metadata.get("name"));
+    if (metadata.containsKey("nfvo_version")) {
+      String nfvo_version = (String) metadata.get("nfvo_version");
+      String actualNfvoVersion = getNfvoVersion();
+      if (nfvo_version.equals(actualNfvoVersion)) {
+        vnfPackage.setNfvo_version(nfvo_version);
+      } else {
+        throw new IncompatibleVNFPackage(
+            "The NFVO Version: "
+                + nfvo_version
+                + " specified in the Metadata"
+                + " is not compatible with the this NFVOs version: "
+                + actualNfvoVersion);
+      }
+    }
     if (metadata.containsKey("scripts-link"))
       vnfPackage.setScriptsLink((String) metadata.get("scripts-link"));
+    if (metadata.containsKey("vim_types")) {
+      List<String> vimTypes = (List<String>) metadata.get("vim_types");
+      vnfPackage.setVimTypes(vimTypes);
+    }
     if (metadata.containsKey("image")) {
       imageDetails = (Map<String, Object>) metadata.get("image");
       String[] REQUIRED_IMAGE_DETAILS = new String[] {"upload"};
@@ -312,7 +352,8 @@ public class CSARParser {
     } else {
       if (!imageDetails.containsKey("ids") && !imageDetails.containsKey("names")) {
         throw new NotFoundException(
-            "VNFPackageManagement: Upload option 'false' or 'check' requires at least a list of ids or names to find the right image.");
+            "VNFPackageManagement: Upload option 'false' or 'check' requires at least a list of ids or names to find "
+                + " the right image.");
       }
       for (VirtualDeploymentUnit vdu : virtualNetworkFunctionDescriptor.getVdu()) {
         if (vdu.getVimInstanceName() != null) {
@@ -434,9 +475,19 @@ public class CSARParser {
     return image;
   }
 
+  private String getNfvoVersion() {
+    String version =
+        org.openbaton.nfvo.core.api.VNFPackageManagement.class
+            .getPackage()
+            .getImplementationVersion();
+    if (version.lastIndexOf("_SNAPSHOT") != -1)
+      version = version.substring(0, version.lastIndexOf("_SNAPSHOT"));
+    return version;
+  }
+
   private String saveVNFD(
       VirtualNetworkFunctionDescriptor vnfd, String projectId, Set<Script> vnfScripts)
-      throws PluginException, VimException, NotFoundException, IOException {
+      throws PluginException, VimException, NotFoundException, IOException, IncompatibleVNFPackage {
 
     VNFPackage vnfPackage = new VNFPackage();
 
@@ -459,8 +510,9 @@ public class CSARParser {
    * MAIN FUNCTIONS
    *
    */
+
   public VirtualNetworkFunctionDescriptor onboardVNFD(byte[] bytes, String projectId)
-      throws NotFoundException, PluginException, VimException, IOException {
+      throws NotFoundException, PluginException, VimException, IOException, IncompatibleVNFPackage {
 
     File temp = File.createTempFile("CSAR", null);
     FileOutputStream fos = new FileOutputStream(temp);
@@ -483,7 +535,7 @@ public class CSARParser {
   }
 
   public NetworkServiceDescriptor onboardNSD(byte[] bytes, String projectId)
-      throws NotFoundException, PluginException, VimException, IOException {
+      throws NotFoundException, PluginException, VimException, IOException, IncompatibleVNFPackage {
 
     File temp = File.createTempFile("CSAR", null);
     FileOutputStream fos = new FileOutputStream(temp);
@@ -497,12 +549,24 @@ public class CSARParser {
     NetworkServiceDescriptor nsd = toscaParser.parseNSDTemplate(nsdTemplate);
 
     for (VirtualNetworkFunctionDescriptor vnfd : nsd.getVnfd()) {
+      if (!folderNames.contains(vnfd.getType())) {
+        throw new NotFoundException("No Scripts specified for the VNFD of type: " + vnfd.getType());
+      }
       Set<Script> vnfScripts = new HashSet<>();
       for (Script script : scripts) {
-        Script s = new Script();
-        s.setName(script.getName());
-        s.setPayload(script.getPayload());
-        vnfScripts.add(s);
+        String[] splitted_name = script.getName().split("!_!");
+        log.debug(splitted_name[0]);
+        log.debug(script.getName());
+
+        if (splitted_name.length == 2) {
+          String folder_name = splitted_name[0];
+          if (folder_name.equals(vnfd.getType())) {
+            Script s = new Script();
+            s.setName(splitted_name[1]);
+            s.setPayload(script.getPayload());
+            vnfScripts.add(s);
+          }
+        }
       }
       ids.add(saveVNFD(vnfd, projectId, vnfScripts));
     }

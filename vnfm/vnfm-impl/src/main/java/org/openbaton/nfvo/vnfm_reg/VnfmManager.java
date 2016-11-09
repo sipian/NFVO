@@ -1,17 +1,18 @@
 /*
- * Copyright (c) 2015 Fraunhofer FOKUS
+ * Copyright (c) 2016 Open Baton (http://www.openbaton.org)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
 
 package org.openbaton.nfvo.vnfm_reg;
@@ -321,7 +322,8 @@ public class VnfmManager
         for (Entry<String, Collection<VimInstance>> vimInstance : vimInstances.entrySet()) {
 
           if (vimInstance.getValue().isEmpty()) {
-            for (VimInstance vimInstance1 : vimInstanceRepository.findAll()) {
+            for (VimInstance vimInstance1 :
+                vimInstanceRepository.findByProjectId(networkServiceDescriptor.getProjectId())) {
               vimInstance.getValue().add(vimInstance1);
             }
           }
@@ -632,37 +634,51 @@ public class VnfmManager
     }
     log.debug("Now the status is: " + networkServiceRecord.getStatus());
     if (status.ordinal() == Status.ACTIVE.ordinal()) {
-      //Check if all vnfr have been received from the vnfm
-      boolean nsrFilledWithAllVnfr =
-          nsdRepository
-                  .findFirstById(networkServiceRecord.getDescriptor_reference())
-                  .getVnfd()
-                  .size()
-              == networkServiceRecord.getVnfr().size();
-      if (nsrFilledWithAllVnfr) {
-        if (networkServiceRecord.getTask() == null) {
-          networkServiceRecord.setTask("");
-        }
-        if (networkServiceRecord.getTask().contains("Scaling in")) {
-          networkServiceRecord.setTask("Scaled in");
-          networkServiceRecord = safeSaveNetworkServiceRecord(networkServiceRecord);
-          publishEvent(Action.SCALE_IN, networkServiceRecord);
-        } else if (networkServiceRecord.getTask().contains("Scaling out")) {
-          networkServiceRecord.setTask("Scaled out");
-          networkServiceRecord = safeSaveNetworkServiceRecord(networkServiceRecord);
-          publishEvent(Action.SCALE_OUT, networkServiceRecord);
-        } else if (networkServiceRecord.getTask().contains("Healing")) {
-          networkServiceRecord.setTask("Healed");
-          networkServiceRecord = safeSaveNetworkServiceRecord(networkServiceRecord);
-          publishEvent(Action.HEAL, networkServiceRecord);
+
+      boolean savedNsr;
+      do {
+        savedNsr = true;
+        networkServiceRecord = nsrRepository.findFirstById(networkServiceRecord.getId());
+        //Check if all vnfr have been received from the vnfm
+        boolean nsrFilledWithAllVnfr =
+            nsdRepository
+                    .findFirstById(networkServiceRecord.getDescriptor_reference())
+                    .getVnfd()
+                    .size()
+                == networkServiceRecord.getVnfr().size();
+        if (nsrFilledWithAllVnfr) {
+          if (networkServiceRecord.getTask() == null) {
+            networkServiceRecord.setTask("");
+          }
+
+          try {
+            if (networkServiceRecord.getTask().contains("Scaling in")) {
+              networkServiceRecord.setTask("Scaled in");
+              networkServiceRecord = nsrRepository.save(networkServiceRecord);
+              publishEvent(Action.SCALE_IN, networkServiceRecord);
+            } else if (networkServiceRecord.getTask().contains("Scaling out")) {
+              networkServiceRecord.setTask("Scaled out");
+              networkServiceRecord = nsrRepository.save(networkServiceRecord);
+              publishEvent(Action.SCALE_OUT, networkServiceRecord);
+            } else if (networkServiceRecord.getTask().contains("Healing")) {
+              networkServiceRecord.setTask("Healed");
+              networkServiceRecord = nsrRepository.save(networkServiceRecord);
+              publishEvent(Action.HEAL, networkServiceRecord);
+            } else {
+              networkServiceRecord.setTask("Onboarded");
+              networkServiceRecord = nsrRepository.save(networkServiceRecord);
+              publishEvent(Action.INSTANTIATE_FINISH, networkServiceRecord);
+            }
+          } catch (OptimisticLockingFailureException e) {
+            log.error(
+                "FFFF OptimisticLockingFailureException while setting the task of the NSR. Don't worry we will try it again.");
+            savedNsr = false;
+          }
         } else {
-          networkServiceRecord.setTask("Onboarded");
-          networkServiceRecord = safeSaveNetworkServiceRecord(networkServiceRecord);
-          publishEvent(Action.INSTANTIATE_FINISH, networkServiceRecord);
+          log.debug("Nsr is ACTIVE but not all vnfr have been received");
         }
-      } else {
-        log.debug("Nsr is ACTIVE but not all vnfr have been received");
-      }
+      } while (!savedNsr);
+
     } else if (status.ordinal() == Status.TERMINATED.ordinal()) {
       publishEvent(Action.RELEASE_RESOURCES_FINISH, networkServiceRecord);
       nsrRepository.delete(networkServiceRecord);

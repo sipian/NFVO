@@ -1,17 +1,18 @@
 /*
- * Copyright (c) 2015 Fraunhofer FOKUS. All rights reserved.
+ * Copyright (c) 2016 Open Baton (http://www.openbaton.org)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
 
 package org.openbaton.nfvo.api.exceptions;
@@ -28,6 +29,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.common.exceptions.UnauthorizedUserException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
@@ -66,10 +68,23 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     VimException.class,
     CyclicDependenciesException.class,
     WrongAction.class,
-    PasswordWeakException.class
+    PasswordWeakException.class,
+    AlreadyExistingException.class,
+    IncompatibleVNFPackage.class,
+    EntityInUseException.class,
+    org.openbaton.exceptions.EntityUnreachableException.class,
+    org.openbaton.exceptions.MissingParameterException.class,
+    org.openbaton.exceptions.MonitoringException.class,
+    org.openbaton.exceptions.NetworkServiceIntegrityException.class,
+    org.openbaton.exceptions.PluginException.class,
+    org.openbaton.exceptions.VnfmException.class,
+    org.openbaton.exceptions.VimException.class,
+    org.openbaton.exceptions.VimDriverException.class,
+    org.openbaton.exceptions.QuotaExceededException.class,
   })
   @ResponseStatus(value = HttpStatus.BAD_REQUEST)
-  protected ResponseEntity<Object> handleInvalidRequest(Exception e, WebRequest request) {
+  protected @ResponseBody ResponseEntity<Object> handleInvalidRequest(
+      Exception e, WebRequest request) {
     if (log.isDebugEnabled()) {
       log.error("Exception was thrown -> Return message: " + e.getMessage(), e);
     } else {

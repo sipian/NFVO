@@ -1,23 +1,23 @@
 /*
- * Copyright (c) 2015 Fraunhofer FOKUS
+ * Copyright (c) 2016 Open Baton (http://www.openbaton.org)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
 
 package org.openbaton.nfvo.vnfm_reg.tasks;
 
 import org.openbaton.catalogue.mano.common.Event;
-import org.openbaton.catalogue.mano.common.LifecycleEvent;
 import org.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
 import org.openbaton.catalogue.nfvo.Action;
 import org.openbaton.catalogue.nfvo.VimInstance;
@@ -31,6 +31,7 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -48,6 +49,17 @@ public class AllocateresourcesTask extends AbstractTask {
   private Set<Key> keys;
 
   @Override
+  protected void setEvent() {
+    event = Event.ALLOCATE.name();
+  }
+
+  @Override
+  protected void setDescription() {
+    description =
+        "All the resources that are contained in this VNFR were instantiated in the chosen vim(s)";
+  }
+
+  @Override
   protected NFVMessage doWork() throws Exception {
 
     log.info(
@@ -56,9 +68,10 @@ public class AllocateresourcesTask extends AbstractTask {
     for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
       List<Future<List<String>>> ids = new ArrayList<>();
       VimInstance vimInstance = vims.get(vdu.getId());
-      if (vimInstance == null)
+      if (vimInstance == null) {
         throw new NullPointerException(
-            "Our algorithms are too complex, even for us, this is what abnormal IQ means :(");
+            "Our algorithms are too complex, even for us, this is what abnormal IQ means :" + "(");
+      }
       ids.add(
           resourceManagement.allocate(
               vdu, virtualNetworkFunctionRecord, vimInstance, userData, keys));
@@ -67,12 +80,7 @@ public class AllocateresourcesTask extends AbstractTask {
         id.get();
       }
     }
-    for (LifecycleEvent event : virtualNetworkFunctionRecord.getLifecycle_event()) {
-      if (event.getEvent().ordinal() == Event.ALLOCATE.ordinal()) {
-        virtualNetworkFunctionRecord.getLifecycle_event_history().add(event);
-        break;
-      }
-    }
+    setHistoryLifecycleEvent(new Date());
     saveVirtualNetworkFunctionRecord();
 
     OrVnfmGenericMessage orVnfmGenericMessage =

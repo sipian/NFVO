@@ -1,21 +1,23 @@
 /*
- * Copyright (c) 2015 Fraunhofer FOKUS
+ * Copyright (c) 2016 Open Baton (http://www.openbaton.org)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
 
 package org.openbaton.nfvo.vnfm_reg.tasks;
 
+import org.openbaton.catalogue.mano.common.Event;
 import org.openbaton.catalogue.mano.descriptor.VNFComponent;
 import org.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
 import org.openbaton.catalogue.mano.record.Status;
@@ -36,6 +38,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -197,7 +200,8 @@ public class ScalingTask extends AbstractTask {
         return errorMessage;
       }
     }
-
+    setHistoryLifecycleEvent(new Date());
+    saveVirtualNetworkFunctionRecord();
     log.trace("HB_VERSION == " + virtualNetworkFunctionRecord.getHb_version());
     return new OrVnfmGenericMessage(virtualNetworkFunctionRecord, Action.SCALED);
   }
@@ -205,5 +209,15 @@ public class ScalingTask extends AbstractTask {
   @Override
   public boolean isAsync() {
     return true;
+  }
+
+  @Override
+  protected void setEvent() {
+    event = Event.SCALE_OUT.name();
+  }
+
+  @Override
+  protected void setDescription() {
+    description = "The resources of this VNFR are scaling at the moment";
   }
 }

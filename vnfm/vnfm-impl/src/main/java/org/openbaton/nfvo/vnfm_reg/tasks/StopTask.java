@@ -1,21 +1,23 @@
 /*
- * Copyright (c) 2015 Fraunhofer FOKUS
+ * Copyright (c) 2016 Open Baton (http://www.openbaton.org)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
 
 package org.openbaton.nfvo.vnfm_reg.tasks;
 
+import org.openbaton.catalogue.mano.common.Event;
 import org.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
 import org.openbaton.catalogue.mano.record.VNFCInstance;
 import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
@@ -30,6 +32,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
+
+import java.util.Date;
 
 /**
  * Created by fmu on 19/08/16.
@@ -81,19 +85,8 @@ public class StopTask extends AbstractTask {
       }
     }
 
+    setHistoryLifecycleEvent(new Date());
     saveVirtualNetworkFunctionRecord();
-
-    /*if (ordered != null && Boolean.parseBoolean(ordered)) {
-    		VirtualNetworkFunctionRecord nextToCallStart =
-    						getNextToCallStart(virtualNetworkFunctionRecord);
-    		if (nextToCallStart != null) {
-    				log.info(
-    								"Calling START to: " + nextToCallStart.getName() + " because is the next in order");
-    				vnfmManager.removeVnfrName(
-    								virtualNetworkFunctionRecord.getParent_ns_id(), nextToCallStart.getName());
-    				sendStop(nextToCallStart);
-    		}
-    }*/
 
     return null;
   }
@@ -107,5 +100,15 @@ public class StopTask extends AbstractTask {
     vnfmSender.sendCommand(
         new OrVnfmStartStopMessage(virtualNetworkFunctionRecord, null, Action.STOP),
         vnfmRegister.getVnfm(virtualNetworkFunctionRecord.getEndpoint()));
+  }
+
+  @Override
+  protected void setEvent() {
+    event = Event.STOP.name();
+  }
+
+  @Override
+  protected void setDescription() {
+    description = "The Stop scripts were executed correctly on this VNFR";
   }
 }

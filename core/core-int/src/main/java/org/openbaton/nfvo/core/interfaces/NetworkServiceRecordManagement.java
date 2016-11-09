@@ -1,17 +1,18 @@
 /*
- * Copyright (c) 2015 Fraunhofer FOKUS
+ * Copyright (c) 2016 Open Baton (http://www.openbaton.org)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
 
 package org.openbaton.nfvo.core.interfaces;
@@ -24,6 +25,7 @@ import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.openbaton.catalogue.nfvo.Configuration;
 import org.openbaton.catalogue.nfvo.messages.Interfaces.NFVMessage;
 import org.openbaton.exceptions.BadFormatException;
+import org.openbaton.exceptions.BadRequestException;
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.exceptions.PluginException;
 import org.openbaton.exceptions.QuotaExceededException;
@@ -49,7 +51,7 @@ public interface NetworkServiceRecordManagement {
       String nsd_id, String projectId, List keys, Map vduVimInstances, Map configurations)
       throws InterruptedException, ExecutionException, VimException, NotFoundException,
           BadFormatException, VimDriverException, QuotaExceededException, PluginException,
-          MissingParameterException;
+          MissingParameterException, BadRequestException;
 
   /**
    * This operation allows submitting and validating a Network Service Descriptor (NSD), including
@@ -63,7 +65,7 @@ public interface NetworkServiceRecordManagement {
       Map configurations)
       throws ExecutionException, InterruptedException, VimException, NotFoundException,
           BadFormatException, VimDriverException, QuotaExceededException, PluginException,
-          MissingParameterException;
+          MissingParameterException, BadRequestException;
 
   /**
    * This operation allows updating a Network Service Descriptor (NSD), including any related VNFFGD
@@ -94,12 +96,21 @@ public interface NetworkServiceRecordManagement {
   NetworkServiceRecord query(String id, String projectId);
 
   /**
-   * This operation is used to remove a disabled Network Service Descriptor.
+   * This operation is used to remove a Network Service Record.
    *
    * @param id
    * @param projectId
    */
   void delete(String id, String projectId) throws NotFoundException, WrongStatusException;
+
+  /**
+   * This operation is used to resume a failed Network Service Record.
+   *
+   * @param id
+   * @param projectId
+   */
+  void resume(String id, String projectId)
+      throws NotFoundException, WrongStatusException, InterruptedException;
 
   void deleteVNFRecord(String idNsr, String idVnf, String projectId);
 

@@ -1,6 +1,26 @@
+/*
+ * Copyright (c) 2016 Open Baton (http://www.openbaton.org)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
 package org.openbaton.nfvo.core.api;
 
+import org.openbaton.catalogue.mano.descriptor.NetworkServiceDescriptor;
 import org.openbaton.catalogue.mano.descriptor.VirtualNetworkFunctionDescriptor;
+import org.openbaton.exceptions.EntityInUseException;
+import org.openbaton.nfvo.repositories.NetworkServiceDescriptorRepository;
 import org.openbaton.nfvo.repositories.VNFDRepository;
 import org.openbaton.nfvo.repositories.VnfPackageRepository;
 import org.slf4j.Logger;
@@ -28,6 +48,8 @@ public class VirtualNetworkFunctionManagement
   @Value("${vnfd.vnfp.cascade.delete:false}")
   private boolean cascadeDelete;
 
+  @Autowired private NetworkServiceDescriptorRepository nsdRepository;
+
   public boolean isCascadeDelete() {
     return cascadeDelete;
   }
@@ -45,9 +67,21 @@ public class VirtualNetworkFunctionManagement
   }
 
   @Override
-  public void delete(String id, String projectId) {
+  public void delete(String id, String projectId) throws EntityInUseException {
+
     VirtualNetworkFunctionDescriptor virtualNetworkFunctionDescriptor =
         vnfdRepository.findFirstById(id);
+    for (NetworkServiceDescriptor networkServiceDescriptor :
+        nsdRepository.findByProjectId(projectId)) {
+      for (VirtualNetworkFunctionDescriptor vnfd : networkServiceDescriptor.getVnfd()) {
+        if (vnfd.getId().equals(id)) {
+          throw new EntityInUseException(
+              "NSD with id: "
+                  + networkServiceDescriptor.getId()
+                  + " is still onboarded and referencing this VNFD");
+        }
+      }
+    }
     if (!virtualNetworkFunctionDescriptor.getProjectId().equals(projectId))
       throw new UnauthorizedUserException(
           "VNFD not under the project chosen, are you trying to hack us? Just kidding, it's a bug :)");

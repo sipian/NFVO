@@ -1,3 +1,20 @@
+/*
+ * Copyright (c) 2016 Open Baton (http://www.openbaton.org)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
 package org.openbaton.nfvo.system;
 
 import org.flywaydb.core.Flyway;
@@ -18,6 +35,8 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.sql.DataSource;
 
+import static org.springframework.data.jpa.domain.AbstractPersistable_.id;
+
 @Configuration
 @ConfigurationProperties
 public class FlywayConfig {
@@ -31,7 +50,7 @@ public class FlywayConfig {
     Flyway flyway = new Flyway();
     flyway.setDataSource(dataSource);
     flyway.setLocations("classpath:/flyway");
-    flyway.setBaselineVersion(MigrationVersion.fromVersion("2.2.0.0"));
+    flyway.setBaselineVersion(MigrationVersion.fromVersion("2.2.0.3"));
     try {
       flyway.baseline();
     } catch (FlywayException e) {
@@ -43,7 +62,7 @@ public class FlywayConfig {
 
 @Entity
 class schema_version implements Serializable {
-  @Id private int id;
+  @Id private int installed_rank;
 
   private String version;
 
@@ -63,12 +82,12 @@ class schema_version implements Serializable {
 
   private int success;
 
-  public int getId() {
-    return id;
+  public int getInstalled_rank() {
+    return installed_rank;
   }
 
-  public void setId(int id) {
-    this.id = id;
+  public void setInstalled_rank(int installed_rank) {
+    this.installed_rank = installed_rank;
   }
 
   public String getVersion() {
@@ -146,8 +165,8 @@ class schema_version implements Serializable {
   @Override
   public String toString() {
     return "schema_version{"
-        + "id="
-        + id
+        + "installed_rank="
+        + installed_rank
         + ", version='"
         + version
         + '\''

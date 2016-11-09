@@ -1,17 +1,18 @@
 /*
- * Copyright (c) 2015 Fraunhofer FOKUS
+ * Copyright (c) 2016 Open Baton (http://www.openbaton.org)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
 
 package org.openbaton.nfvo.core.api;
@@ -33,11 +34,13 @@ import org.openbaton.catalogue.mano.record.VirtualLinkRecord;
 import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.openbaton.catalogue.nfvo.*;
 import org.openbaton.catalogue.nfvo.messages.Interfaces.NFVMessage;
+import org.openbaton.catalogue.nfvo.messages.OrVnfmGenericMessage;
 import org.openbaton.catalogue.nfvo.messages.OrVnfmHealVNFRequestMessage;
 import org.openbaton.catalogue.nfvo.messages.OrVnfmStartStopMessage;
 import org.openbaton.catalogue.nfvo.messages.VnfmOrHealedMessage;
 import org.openbaton.catalogue.security.Key;
 import org.openbaton.exceptions.BadFormatException;
+import org.openbaton.exceptions.BadRequestException;
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.exceptions.PluginException;
 import org.openbaton.exceptions.MissingParameterException;
@@ -46,10 +49,7 @@ import org.openbaton.exceptions.VimDriverException;
 import org.openbaton.exceptions.VimException;
 import org.openbaton.exceptions.WrongStatusException;
 import org.openbaton.nfvo.common.internal.model.EventNFVO;
-import org.openbaton.nfvo.core.interfaces.DependencyManagement;
-import org.openbaton.nfvo.core.interfaces.EventDispatcher;
-import org.openbaton.nfvo.core.interfaces.NetworkManagement;
-import org.openbaton.nfvo.core.interfaces.ResourceManagement;
+import org.openbaton.nfvo.core.interfaces.*;
 import org.openbaton.nfvo.core.utils.NSDUtils;
 import org.openbaton.nfvo.core.utils.NSRUtils;
 import org.openbaton.nfvo.repositories.KeyRepository;
@@ -60,6 +60,7 @@ import org.openbaton.nfvo.repositories.VNFRRepository;
 import org.openbaton.nfvo.repositories.VNFRecordDependencyRepository;
 import org.openbaton.nfvo.repositories.VduRepository;
 import org.openbaton.nfvo.repositories.VimRepository;
+import org.openbaton.nfvo.repositories.VnfPackageRepository;
 import org.openbaton.nfvo.repositories.VnfmEndpointRepository;
 import org.openbaton.vnfm.interfaces.manager.VnfmManager;
 import org.slf4j.Logger;
@@ -132,6 +133,7 @@ public class NetworkServiceRecordManagement
   private boolean deleteInAllStatus;
 
   @Autowired private KeyRepository keyRepository;
+  @Autowired private VnfPackageRepository vnfPackageRepository;
 
   @PostConstruct
   private void init() {
@@ -151,7 +153,7 @@ public class NetworkServiceRecordManagement
       String idNsd, String projectID, List keys, Map vduVimInstances, Map configurations)
       throws InterruptedException, ExecutionException, VimException, NotFoundException,
           BadFormatException, VimDriverException, QuotaExceededException, PluginException,
-          MissingParameterException {
+          MissingParameterException, BadRequestException {
     log.info("Looking for NetworkServiceDescriptor with id: " + idNsd);
     NetworkServiceDescriptor networkServiceDescriptor = nsdRepository.findFirstById(idNsd);
     if (!networkServiceDescriptor.getProjectId().equals(projectID)) {
@@ -175,7 +177,9 @@ public class NetworkServiceRecordManagement
       for (Object k : keys) {
         log.debug("Looking for keyname: " + k);
         Key key = keyRepository.findKey(projectID, (String) k);
-        if (key == null) throw new NotFoundException("No key where found with name " + k);
+        if (key == null) {
+          throw new NotFoundException("No key where found with name " + k);
+        }
         keys1.add(key);
       }
       body.setKeys(keys1);
@@ -193,7 +197,7 @@ public class NetworkServiceRecordManagement
       Map configurations)
       throws ExecutionException, InterruptedException, VimException, NotFoundException,
           BadFormatException, VimDriverException, QuotaExceededException, PluginException,
-          MissingParameterException {
+          MissingParameterException, BadRequestException {
     networkServiceDescriptor.setProjectId(projectId);
     nsdUtils.fetchVimInstances(networkServiceDescriptor, projectId);
     DeployNSRBody body = new DeployNSRBody();
@@ -632,6 +636,7 @@ public class NetworkServiceRecordManagement
       String projectId)
       throws NotFoundException, WrongStatusException {
     NetworkServiceRecord networkServiceRecord = getNetworkServiceRecordInActiveState(id);
+
     if (!networkServiceRecord.getProjectId().equals(projectId)) {
       throw new UnauthorizedUserException(
           "NSR not under the project chosen, are you trying to hack us? Just kidding, it's a bug :)");
@@ -862,12 +867,65 @@ public class NetworkServiceRecordManagement
   private NetworkServiceRecord deployNSR(
       NetworkServiceDescriptor networkServiceDescriptor, String projectID, DeployNSRBody body)
       throws NotFoundException, BadFormatException, VimException, PluginException,
-          MissingParameterException {
+          MissingParameterException, BadRequestException {
     log.info("Fetched NetworkServiceDescriptor: " + networkServiceDescriptor.getName());
     log.info("VNFD are: ");
     for (VirtualNetworkFunctionDescriptor virtualNetworkFunctionDescriptor :
         networkServiceDescriptor.getVnfd()) {
       log.debug("\t" + virtualNetworkFunctionDescriptor.getName());
+    }
+
+    log.debug("Checking vim instance support");
+    for (VirtualNetworkFunctionDescriptor vnfd : networkServiceDescriptor.getVnfd()) {
+      for (VirtualDeploymentUnit vdu : vnfd.getVdu()) {
+        Collection<String> instanceNames;
+
+        if (body == null
+            || body.getVduVimInstances() == null
+            || body.getVduVimInstances().get(vdu.getName()) == null) {
+          if (vdu.getVimInstanceName() == null) {
+            throw new MissingParameterException(
+                "No VimInstances specified for vdu: " + vdu.getName());
+          }
+          instanceNames = vdu.getVimInstanceName();
+        } else {
+          instanceNames = body.getVduVimInstances().get(vdu.getName());
+        }
+        if (instanceNames.size() == 0) {
+          log.debug("ProjectID: " + projectID);
+          for (VimInstance vimInstance : vimInstanceRepository.findByProjectId(projectID)) {
+            instanceNames.add(vimInstance.getName());
+          }
+        }
+        log.debug("Vim Instances chosen are: " + instanceNames);
+        for (String vimInstanceName : instanceNames) {
+          VimInstance vimInstance = null;
+          for (VimInstance vi : vimInstanceRepository.findByProjectId(projectID)) {
+            if (vimInstanceName.equals(vi.getName())) {
+              vimInstance = vi;
+              log.debug("Found vim instance " + vimInstance.getName());
+              VNFPackage vnfPackage =
+                  vnfPackageRepository.findFirstById(vnfd.getVnfPackageLocation());
+              if (vnfPackage == null
+                  || vnfPackage.getVimTypes() == null
+                  || vnfPackage.getVimTypes().size() == 0) {
+                log.warn("VNFPackage does not provide supported VIM. I will skip the check!");
+                break;
+              }
+              log.debug(
+                  "Checking if "
+                      + vimInstance.getType()
+                      + " is contained in "
+                      + vnfPackage.getVimTypes());
+
+              if (!vnfPackage.getVimTypes().contains(vimInstance.getType())) {
+                throw new org.openbaton.exceptions.BadRequestException(
+                    "The Vim Instance chosen does not support the VNFD " + vnfd.getName());
+              }
+            }
+          }
+        }
+      }
     }
 
     log.info("Checking if all vnfm are registered and active");
@@ -911,9 +969,11 @@ public class NetworkServiceRecordManagement
             for (VimInstance vi : vimInstanceRepository.findByProjectId(vdu.getProjectId())) {
               if (vimInstanceName.equals(vi.getName())) {
                 vimInstance = vi;
+                break;
               }
             }
 
+            //check networks
             for (VNFComponent vnfc : vdu.getVnfc()) {
               for (VNFDConnectionPoint vnfdConnectionPoint : vnfc.getConnection_point()) {
                 if (vnfdConnectionPoint.getVirtual_link_reference().equals(vlr.getName())) {
@@ -1118,6 +1178,35 @@ public class NetworkServiceRecordManagement
       }
     } else {
       nsrRepository.delete(networkServiceRecord.getId());
+    }
+  }
+
+  @Override
+  public void resume(String id, String projectId)
+      throws NotFoundException, WrongStatusException, InterruptedException {
+    NetworkServiceRecord networkServiceRecord = getNetworkServiceRecordInAnyState(id);
+    if (!networkServiceRecord.getProjectId().equals(projectId)) {
+      throw new UnauthorizedUserException(
+          "NSR not under the project chosen, are you trying to hack us? Just kidding, it's a bug :)");
+    }
+    log.info("Resuming NSR with id: " + id);
+
+    for (VirtualNetworkFunctionRecord vnfr : networkServiceRecord.getVnfr()) {
+      if (vnfr.getStatus().ordinal() == (Status.ERROR.ordinal())) {
+        OrVnfmGenericMessage orVnfmGenericMessage = new OrVnfmGenericMessage();
+        orVnfmGenericMessage.setVnfr(vnfr);
+
+        Set<VNFRecordDependency> vnfRecordDependencies = networkServiceRecord.getVnf_dependency();
+        for (VNFRecordDependency vnfRecordDependency : vnfRecordDependencies) {
+          log.debug(vnfRecordDependency.getTarget() + " == " + vnfr.getName());
+          if (vnfRecordDependency.getTarget().equals(vnfr.getName())) {
+            orVnfmGenericMessage.setVnfrd(vnfRecordDependency);
+          }
+        }
+        orVnfmGenericMessage.setAction(Action.RESUME);
+        log.info("Sending resume message for VNFR: " + vnfr.getId());
+        vnfmManager.sendMessageToVNFR(vnfr, orVnfmGenericMessage);
+      }
     }
   }
 
