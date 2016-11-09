@@ -481,6 +481,21 @@ include::{snippets}/nsr-multiple-delete-example/curl-request.adoc[]
 include::{snippets}/nsr-multiple-delete-example/http-response.adoc[]
 
 
+=== Resume a failed Network Service Records
+
+`POST` request +
+the id in the url specifies the NSR +
+{host}/api/v1/ns-records/{nsrId}
+
+==== Example request
+
+include::{snippets}/nsr-resume-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/nsr-resume-example/http-response.adoc[]
+
+
 
 
 [[resources-VirtualNetworkFunctionRecord]]
@@ -543,6 +558,26 @@ include::{snippets}/nsr-delete-vnfr-example/curl-request.adoc[]
 ==== Example response
 
 include::{snippets}/nsr-delete-vnfr-example/http-response.adoc[]
+
+
+=== Retrieving a Virtual Network Function Record's lifecycle event history
+
+`GET` request +
+the first id in the url belongs to the NSR that comprises the VNFR +
+the second id in the url belongs to the VNFR whose history shall be retrieved +
+{host}/api/v1/ns-records/[nsrId}/vnfrecords/{vnfrId}/history
+
+==== Response structure
+
+include::{snippets}/nsr-get-vnfr-history-example/response-fields.adoc[]
+
+==== Example request
+
+include::{snippets}/nsr-get-vnfr-history-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/nsr-get-vnfr-history-example/http-response.adoc[]
 
 
 === Starting a VNFCInstance

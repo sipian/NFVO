@@ -1968,6 +1968,20 @@ public class ApiDocumentation {
   }
 
   @Test
+  public void nsrResumeExample() throws Exception {
+    Mockito.doNothing()
+        .when(networkServiceRecordManagement)
+        .resume("66046d77-aade-4f14-ad39-f2976532e5f2", "8a387f1e-9a42-43c7-bab0-3915719c6fca");
+
+    this.mockMvc
+        .perform(
+            post("/api/v1/ns-records/66046d77-aade-4f14-ad39-f2976532e5f2")
+                .header("project-id", "8a387f1e-9a42-43c7-bab0-3915719c6fca")
+                .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e"))
+        .andExpect(status().isNoContent());
+  }
+
+  @Test
   public void nsrGetAllVnfrExample() throws Exception {
     when(
             networkServiceRecordManagement.query(
@@ -2138,6 +2152,36 @@ public class ApiDocumentation {
   //                preprocessRequest(prettyPrint()),
   //                preprocessResponse(prettyPrint())));
   //  }
+
+  @Test
+  public void nsrGetVnfrHistoryExample() throws Exception {
+    when(
+            networkServiceRecordManagement.getVirtualNetworkFunctionRecord(
+                "66046d77-aade-4f14-ad39-f2976532e5f2",
+                "293e6a52-c6df-40c0-8f8a-58911bb9319b",
+                "8a387f1e-9a42-43c7-bab0-3915719c6fca"))
+        .thenReturn(vnfrReturn);
+
+    this.mockMvc
+        .perform(
+            get(
+                    "/api/v1/ns-records/66046d77-aade-4f14-ad39-f2976532e5f2/vnfrecords/293e6a52-c6df-40c0-8f8a-58911bb9319b/history")
+                .header("project-id", "8a387f1e-9a42-43c7-bab0-3915719c6fca")
+                .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e"))
+        .andDo(
+            document(
+                "nsr-get-vnfr-history-example",
+                responseFields(
+                    fieldWithPath("[]")
+                        .type(JsonFieldType.ARRAY)
+                        .description(
+                            "An array of lifecycle events that were executed on this VNFR"))))
+        .andDo(
+            document(
+                "nsr-get-vnfr-history-example",
+                preprocessRequest(prettyPrint()),
+                preprocessResponse(prettyPrint())));
+  }
 
   @Test
   public void nsrStartVnfcInstanceExample() throws Exception {
