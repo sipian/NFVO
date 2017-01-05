@@ -17,28 +17,29 @@
 
 package org.openbaton.nfvo.core.tests.api;
 
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.util.ArrayList;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.openbaton.catalogue.nfvo.VimInstance;
+import org.openbaton.exceptions.AlreadyExistingException;
+import org.openbaton.exceptions.BadRequestException;
 import org.openbaton.exceptions.EntityUnreachableException;
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.exceptions.PluginException;
 import org.openbaton.exceptions.VimException;
-import org.openbaton.nfvo.api.RestVimInstances;
+import org.openbaton.nfvo.api.admin.RestVimInstances;
 import org.openbaton.nfvo.core.interfaces.VimManagement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.ArrayList;
-
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.when;
 
 public class ApiRestVimInstancesTest {
 
@@ -59,7 +60,8 @@ public class ApiRestVimInstancesTest {
 
   @Test
   public void createVimInstance()
-      throws VimException, PluginException, IOException, EntityUnreachableException {
+      throws VimException, PluginException, IOException, EntityUnreachableException,
+          BadRequestException, AlreadyExistingException {
     VimInstance datacenter = new VimInstance();
     datacenter.setId("123");
     datacenter.setName("DC-1");
@@ -84,7 +86,8 @@ public class ApiRestVimInstancesTest {
 
   @Test
   public void updateVimInstance()
-      throws VimException, PluginException, IOException, EntityUnreachableException {
+      throws VimException, PluginException, IOException, EntityUnreachableException,
+          BadRequestException, AlreadyExistingException {
     VimInstance datacenter = new VimInstance();
     datacenter.setId("123");
     datacenter.setName("DC-1");
@@ -95,7 +98,7 @@ public class ApiRestVimInstancesTest {
   }
 
   @Test
-  public void deleteVimInstance() throws NotFoundException {
+  public void deleteVimInstance() throws NotFoundException, BadRequestException {
     mock.delete("123", "pi");
     restVimInstances.delete("123", "pi");
   }

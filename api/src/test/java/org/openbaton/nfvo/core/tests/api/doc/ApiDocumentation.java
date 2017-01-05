@@ -16,10 +16,22 @@
 
 package org.openbaton.nfvo.core.tests.api.doc;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.when;
+import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
+import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.*;
+import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
+import static org.springframework.restdocs.payload.PayloadDocumentation.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.yaml.snakeyaml.tokens.Token.ID.Key;
+
 import com.google.gson.Gson;
-import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import java.io.Serializable;
+import java.util.*;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,6 +52,14 @@ import org.openbaton.catalogue.security.User;
 import org.openbaton.exceptions.BadFormatException;
 import org.openbaton.exceptions.QuotaExceededException;
 import org.openbaton.nfvo.api.*;
+import org.openbaton.nfvo.api.admin.RestKeys;
+import org.openbaton.nfvo.api.admin.RestProject;
+import org.openbaton.nfvo.api.admin.RestUsers;
+import org.openbaton.nfvo.api.admin.RestVimInstances;
+import org.openbaton.nfvo.api.catalogue.RestNetworkServiceDescriptor;
+import org.openbaton.nfvo.api.catalogue.RestVNFPackage;
+import org.openbaton.nfvo.api.catalogue.RestVirtualNetworkFunctionDescriptor;
+import org.openbaton.nfvo.api.runtime.RestNetworkServiceRecord;
 import org.openbaton.nfvo.core.interfaces.*;
 import org.openbaton.nfvo.security.authorization.ProjectManagement;
 import org.openbaton.nfvo.security.authorization.UserManagement;
@@ -50,24 +70,7 @@ import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.io.Serializable;
-import java.util.*;
-
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyDouble;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.when;
-import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
-import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.*;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
-import static org.springframework.restdocs.payload.PayloadDocumentation.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.yaml.snakeyaml.tokens.Token.ID.Key;
-
-/**
- * Created by tbr on 23.09.15.
- */
+/** Created by tbr on 23.09.15. */
 public class ApiDocumentation {
 
   private RestDocumentationResultHandler document;
@@ -1087,9 +1090,8 @@ public class ApiDocumentation {
 
   @Test
   public void nsdCreateExample() throws Exception, BadFormatException {
-    when(
-            networkServiceDescriptorManagement.onboard(
-                iperfNsd1, "8a387f1e-9a42-43c7-bab0-3915719c6fca"))
+    when(networkServiceDescriptorManagement.onboard(
+            iperfNsd1, "8a387f1e-9a42-43c7-bab0-3915719c6fca"))
         .thenReturn(iperfNsd1);
 
     this.mockMvc
@@ -1123,9 +1125,8 @@ public class ApiDocumentation {
 
   @Test
   public void nsdGetAllExample() throws Exception {
-    when(
-            networkServiceDescriptorManagement.queryByProjectId(
-                "8a387f1e-9a42-43c7-bab0-3915719c6fca"))
+    when(networkServiceDescriptorManagement.queryByProjectId(
+            "8a387f1e-9a42-43c7-bab0-3915719c6fca"))
         .thenReturn(nsdSetReturn);
 
     this.mockMvc
@@ -1148,9 +1149,8 @@ public class ApiDocumentation {
 
   @Test
   public void nsdGetExample() throws Exception {
-    when(
-            networkServiceDescriptorManagement.query(
-                "55555c52-f952-430c-b093-45acb2bbf50e", "8a387f1e-9a42-43c7-bab0-3915719c6fca"))
+    when(networkServiceDescriptorManagement.query(
+            "55555c52-f952-430c-b093-45acb2bbf50e", "8a387f1e-9a42-43c7-bab0-3915719c6fca"))
         .thenReturn(iperfNsd1Return);
 
     iperfNsd1.setId("55555c52-f952-430c-b093-45acb2bbf50e");
@@ -1200,9 +1200,8 @@ public class ApiDocumentation {
 
   @Test
   public void nsdUpdateExample() throws Exception {
-    when(
-            networkServiceDescriptorManagement.update(
-                any(NetworkServiceDescriptor.class), eq("8a387f1e-9a42-43c7-bab0-3915719c6fca")))
+    when(networkServiceDescriptorManagement.update(
+            any(NetworkServiceDescriptor.class), eq("8a387f1e-9a42-43c7-bab0-3915719c6fca")))
         .thenReturn(iperfNsd1Return);
 
     this.mockMvc
@@ -1269,11 +1268,10 @@ public class ApiDocumentation {
 
   @Test
   public void nsdCreateVNFDExample() throws Exception {
-    when(
-            networkServiceDescriptorManagement.addVnfd(
-                any(VirtualNetworkFunctionDescriptor.class),
-                eq("55555c52-f952-430c-b093-45acb2bbf50e"),
-                eq("8a387f1e-9a42-43c7-bab0-3915719c6fca")))
+    when(networkServiceDescriptorManagement.addVnfd(
+            any(VirtualNetworkFunctionDescriptor.class),
+            eq("55555c52-f952-430c-b093-45acb2bbf50e"),
+            eq("8a387f1e-9a42-43c7-bab0-3915719c6fca")))
         .thenReturn(iperfVnfdServerReturn);
 
     this.mockMvc
@@ -1324,9 +1322,8 @@ public class ApiDocumentation {
 
   @Test
   public void nsdGetAllVNFDExample() throws Exception {
-    when(
-            networkServiceDescriptorManagement.query(
-                "55555c52-f952-430c-b093-45acb2bbf50e", "8a387f1e-9a42-43c7-bab0-3915719c6fca"))
+    when(networkServiceDescriptorManagement.query(
+            "55555c52-f952-430c-b093-45acb2bbf50e", "8a387f1e-9a42-43c7-bab0-3915719c6fca"))
         .thenReturn(iperfNsd1Return);
 
     this.mockMvc
@@ -1351,11 +1348,10 @@ public class ApiDocumentation {
 
   @Test
   public void nsdGetVNFDExample() throws Exception {
-    when(
-            networkServiceDescriptorManagement.getVirtualNetworkFunctionDescriptor(
-                "55555c52-f952-430c-b093-45acb2bbf50e",
-                "faaa910d-457d-4148-b4ea-7373b515febc",
-                "8a387f1e-9a42-43c7-bab0-3915719c6fca"))
+    when(networkServiceDescriptorManagement.getVirtualNetworkFunctionDescriptor(
+            "55555c52-f952-430c-b093-45acb2bbf50e",
+            "faaa910d-457d-4148-b4ea-7373b515febc",
+            "8a387f1e-9a42-43c7-bab0-3915719c6fca"))
         .thenReturn(iperfVnfdServerReturn);
 
     this.mockMvc
@@ -1424,12 +1420,11 @@ public class ApiDocumentation {
 
   @Test
   public void nsdUpdateVNFDExample() throws Exception {
-    when(
-            networkServiceDescriptorManagement.updateVNF(
-                eq("55555c52-f952-430c-b093-45acb2bbf50e"),
-                eq("faaa910d-457d-4148-b4ea-7373b515febc"),
-                any(VirtualNetworkFunctionDescriptor.class),
-                eq("8a387f1e-9a42-43c7-bab0-3915719c6fca")))
+    when(networkServiceDescriptorManagement.updateVNF(
+            eq("55555c52-f952-430c-b093-45acb2bbf50e"),
+            eq("faaa910d-457d-4148-b4ea-7373b515febc"),
+            any(VirtualNetworkFunctionDescriptor.class),
+            eq("8a387f1e-9a42-43c7-bab0-3915719c6fca")))
         .thenReturn(iperfVnfdServerReturn);
 
     this.mockMvc
@@ -1572,9 +1567,8 @@ public class ApiDocumentation {
 
   @Test
   public void getVNFDExample() throws Exception {
-    when(
-            vnfdManagement.query(
-                "55553c52-f952-430c-b693-45aab2bbf58e", "8a387f1e-9a42-43c7-bab0-3915719c6fca"))
+    when(vnfdManagement.query(
+            "55553c52-f952-430c-b693-45aab2bbf58e", "8a387f1e-9a42-43c7-bab0-3915719c6fca"))
         .thenReturn(iperfVnfdClientReturn);
 
     this.mockMvc
@@ -1642,11 +1636,10 @@ public class ApiDocumentation {
 
   @Test
   public void updateVNFDExample() throws Exception {
-    when(
-            vnfdManagement.update(
-                any(VirtualNetworkFunctionDescriptor.class),
-                eq("faba910d-449d-4146-b4ea-7373c515aebc"),
-                eq("8a387f1e-9a42-43c7-bab0-3915719c6fca")))
+    when(vnfdManagement.update(
+            any(VirtualNetworkFunctionDescriptor.class),
+            eq("faba910d-449d-4146-b4ea-7373c515aebc"),
+            eq("8a387f1e-9a42-43c7-bab0-3915719c6fca")))
         .thenReturn(iperfVnfdClientReturn);
 
     this.mockMvc
@@ -1806,9 +1799,8 @@ public class ApiDocumentation {
 
   @Test
   public void nsrGetExample() throws Exception {
-    when(
-            networkServiceRecordManagement.query(
-                "66046d77-aade-4f14-ad39-f2976532e5f2", "8a387f1e-9a42-43c7-bab0-3915719c6fca"))
+    when(networkServiceRecordManagement.query(
+            "66046d77-aade-4f14-ad39-f2976532e5f2", "8a387f1e-9a42-43c7-bab0-3915719c6fca"))
         .thenReturn(nsr1Return);
 
     this.mockMvc
@@ -1889,11 +1881,10 @@ public class ApiDocumentation {
 
   @Test
   public void nsrUpdateExample() throws Exception {
-    when(
-            networkServiceRecordManagement.update(
-                any(NetworkServiceRecord.class),
-                eq("66046d77-aade-4f14-ad39-f2976532e5f2"),
-                eq("8a387f1e-9a42-43c7-bab0-3915719c6fca")))
+    when(networkServiceRecordManagement.update(
+            any(NetworkServiceRecord.class),
+            eq("66046d77-aade-4f14-ad39-f2976532e5f2"),
+            eq("8a387f1e-9a42-43c7-bab0-3915719c6fca")))
         .thenReturn(nsr1Return);
 
     this.mockMvc
@@ -1983,9 +1974,8 @@ public class ApiDocumentation {
 
   @Test
   public void nsrGetAllVnfrExample() throws Exception {
-    when(
-            networkServiceRecordManagement.query(
-                "5e074545-0a81-4de8-8494-eb67173ec565", "8a387f1e-9a42-43c7-bab0-3915719c6fca"))
+    when(networkServiceRecordManagement.query(
+            "5e074545-0a81-4de8-8494-eb67173ec565", "8a387f1e-9a42-43c7-bab0-3915719c6fca"))
         .thenReturn(nsr1Return);
 
     this.mockMvc
@@ -2007,11 +1997,10 @@ public class ApiDocumentation {
 
   @Test
   public void nsrGetVnfrExample() throws Exception {
-    when(
-            networkServiceRecordManagement.getVirtualNetworkFunctionRecord(
-                "5e074545-0a81-4de8-8494-eb67173ec565",
-                "2135f315-1772-4ad8-85c8-caa209400ef0",
-                "8a387f1e-9a42-43c7-bab0-3915719c6fca"))
+    when(networkServiceRecordManagement.getVirtualNetworkFunctionRecord(
+            "5e074545-0a81-4de8-8494-eb67173ec565",
+            "2135f315-1772-4ad8-85c8-caa209400ef0",
+            "8a387f1e-9a42-43c7-bab0-3915719c6fca"))
         .thenReturn(vnfrReturn);
 
     this.mockMvc
@@ -2155,11 +2144,10 @@ public class ApiDocumentation {
 
   @Test
   public void nsrGetVnfrHistoryExample() throws Exception {
-    when(
-            networkServiceRecordManagement.getVirtualNetworkFunctionRecord(
-                "66046d77-aade-4f14-ad39-f2976532e5f2",
-                "293e6a52-c6df-40c0-8f8a-58911bb9319b",
-                "8a387f1e-9a42-43c7-bab0-3915719c6fca"))
+    when(networkServiceRecordManagement.getVirtualNetworkFunctionRecord(
+            "66046d77-aade-4f14-ad39-f2976532e5f2",
+            "293e6a52-c6df-40c0-8f8a-58911bb9319b",
+            "8a387f1e-9a42-43c7-bab0-3915719c6fca"))
         .thenReturn(vnfrReturn);
 
     this.mockMvc
@@ -2409,9 +2397,8 @@ public class ApiDocumentation {
 
   @Test
   public void vimInstanceGetExample() throws Exception {
-    when(
-            vimManagement.query(
-                "07241c3b-9d50-44ba-a495-9d3b96c226bd", "8a387f1e-9a42-43c7-bab0-3915719c6fca"))
+    when(vimManagement.query(
+            "07241c3b-9d50-44ba-a495-9d3b96c226bd", "8a387f1e-9a42-43c7-bab0-3915719c6fca"))
         .thenReturn(vimInstance0Return);
 
     this.mockMvc
@@ -2458,11 +2445,10 @@ public class ApiDocumentation {
 
   @Test
   public void vimInstanceUpdateExample() throws Exception {
-    when(
-            vimManagement.update(
-                any(VimInstance.class),
-                eq("07241c3b-9d50-44ba-a495-9d3b96c226bd"),
-                eq("8a387f1e-9a42-43c7-bab0-3915719c6fca")))
+    when(vimManagement.update(
+            any(VimInstance.class),
+            eq("07241c3b-9d50-44ba-a495-9d3b96c226bd"),
+            eq("8a387f1e-9a42-43c7-bab0-3915719c6fca")))
         .thenReturn(vimInstance1Return);
 
     this.mockMvc
@@ -2537,9 +2523,8 @@ public class ApiDocumentation {
 
   @Test
   public void vnfpackageGetExample() throws Exception {
-    when(
-            vnfPackageManagement.query(
-                "61a40e7c-a424-4d47-8413-532217ddcf4f", "8a387f1e-9a42-43c7-bab0-3915719c6fca"))
+    when(vnfPackageManagement.query(
+            "61a40e7c-a424-4d47-8413-532217ddcf4f", "8a387f1e-9a42-43c7-bab0-3915719c6fca"))
         .thenReturn(vnfPackage1Return);
 
     this.mockMvc
@@ -2584,11 +2569,10 @@ public class ApiDocumentation {
 
   @Test
   public void vnfpackageUpdateExample() throws Exception {
-    when(
-            vnfPackageManagement.update(
-                eq("61a40e7c-a424-4d47-8413-532217ddcf4f"),
-                any(VNFPackage.class),
-                eq("8a387f1e-9a42-43c7-bab0-3915719c6fca")))
+    when(vnfPackageManagement.update(
+            eq("61a40e7c-a424-4d47-8413-532217ddcf4f"),
+            any(VNFPackage.class),
+            eq("8a387f1e-9a42-43c7-bab0-3915719c6fca")))
         .thenReturn(vnfPackage1Return);
 
     this.mockMvc

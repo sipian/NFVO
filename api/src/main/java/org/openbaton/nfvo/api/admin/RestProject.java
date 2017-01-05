@@ -1,22 +1,25 @@
 /*
- * Copyright (c) 2016 Open Baton (http://www.openbaton.org)
+ * Copyright (c) 2016 Open Baton (http://openbaton.org)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
  */
 
-package org.openbaton.nfvo.api;
+package org.openbaton.nfvo.api.admin;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import javax.validation.Valid;
 import org.openbaton.catalogue.security.Project;
 import org.openbaton.catalogue.security.Role;
 import org.openbaton.catalogue.security.User;
@@ -33,16 +36,15 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 
-import javax.validation.Valid;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-/**
- * Created by lto on 25/05/16.
- */
+/** Created by lto on 25/05/16. */
 @RestController
 @RequestMapping("/api/v1/projects")
 public class RestProject {
@@ -110,8 +112,8 @@ public class RestProject {
    *
    * @return List<Project>: The list of Projects available
    */
-  @RequestMapping(method = RequestMethod.GET)
-  public Iterable<Project> findAll() throws NotFoundException, NotAllowedException {
+  @RequestMapping(method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+  public @ResponseBody Iterable<Project> findAll() throws NotFoundException, NotAllowedException {
     log.trace("Finding all Projects");
     Set<Project> projects = new HashSet<>();
     if (isAdmin()) {
@@ -171,15 +173,13 @@ public class RestProject {
 
   private User getCurrentUser() throws NotFoundException {
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-    if (authentication == null) return null;
+    if (authentication == null) throw new NotFoundException("authentication invalid");
     String currentUserName = authentication.getName();
     return userManagement.queryByName(currentUserName);
   }
 
   public boolean isAdmin() throws NotAllowedException, NotFoundException {
-    /**
-     * Modified to work with the api-doc branch.
-     */
+    /** Modified to work with the api-doc branch. */
     //    User currentUser = getCurrentUser();
     //    log.trace("Check user if admin: " + currentUser.getUsername());
     //    for (Role role : currentUser.getRoles()) {

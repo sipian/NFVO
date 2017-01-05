@@ -17,6 +17,7 @@
 
 package org.openbaton.nfvo.vnfm_reg.impl.register;
 
+import java.io.IOException;
 import org.openbaton.catalogue.nfvo.EndpointType;
 import org.openbaton.catalogue.nfvo.VnfmManagerEndpoint;
 import org.openbaton.exceptions.AlreadyExistingException;
@@ -29,11 +30,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-
-/**
- * Created by lto on 27/05/15.
- */
+/** Created by lto on 27/05/15. */
 @Service
 @ConfigurationProperties
 public class RabbitRegister extends VnfmRegister {
@@ -73,6 +70,7 @@ public class RabbitRegister extends VnfmRegister {
 
     VnfmManagerEndpoint endpoint = gson.fromJson(endpoint_json, VnfmManagerEndpoint.class);
     log.debug("Unregistering: " + endpoint);
+    //TODO double check that the equals is done on all parameters..
     for (VnfmManagerEndpoint vnfmManagerEndpoint : vnfmEndpointRepository.findAll())
       if (vnfmManagerEndpoint.getEndpoint().equals(endpoint.getEndpoint())) {
         this.unregister(vnfmManagerEndpoint);

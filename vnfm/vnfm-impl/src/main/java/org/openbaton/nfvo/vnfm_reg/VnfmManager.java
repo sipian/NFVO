@@ -18,7 +18,21 @@
 package org.openbaton.nfvo.vnfm_reg;
 
 import com.google.gson.Gson;
-
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import javax.annotation.PostConstruct;
 import org.openbaton.catalogue.api.DeployNSRBody;
 import org.openbaton.catalogue.mano.common.VNFDeploymentFlavour;
 import org.openbaton.catalogue.mano.descriptor.NetworkServiceDescriptor;
@@ -91,32 +105,14 @@ import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-
-import javax.annotation.PostConstruct;
-
-/**
- * Created by lto on 08/07/15.
- */
+/** Created by lto on 08/07/15. */
 @Service
 @Scope
 @Order(value = (Ordered.LOWEST_PRECEDENCE - 10)) // in order to be the second to last
 @ConfigurationProperties
 public class VnfmManager
-    implements org.openbaton.vnfm.interfaces.manager.VnfmManager, ApplicationEventPublisherAware,
+    implements org.openbaton.vnfm.interfaces.manager.VnfmManager,
+        ApplicationEventPublisherAware,
         ApplicationListener<EventFinishNFVO> {
 
   private static Map<String, Map<String, Integer>> vnfrNames;
@@ -159,7 +155,7 @@ public class VnfmManager
   @Value("${nfvo.timezone:CET}")
   private String timezone;
 
-  @Value("${nfvo.ems.version:0.15}")
+  @Value("${nfvo.ems.version:0.19}")
   private String emsVersion;
 
   @Value("${spring.rabbitmq.username:admin}")
@@ -245,9 +241,7 @@ public class VnfmManager
     log.debug("Running VnfmManager init");
 
     vnfrNames = new LinkedHashMap<>();
-    /**
-     * Asynchronous thread executor configuration
-     */
+    /** Asynchronous thread executor configuration */
     this.asyncExecutor = new ThreadPoolTaskExecutor();
 
     this.asyncExecutor.setThreadNamePrefix("OpenbatonTask-");
@@ -280,10 +274,12 @@ public class VnfmManager
 
     try {
 
-      log.debug("Ordered: " + ordered);
+      log.debug(
+          "Parameter ordered set to "
+              + ordered
+              + ".Consider changing it directly into the openbaton.properties file");
       if (ordered) {
         vnfrNames.put(networkServiceRecord.getId(), new HashMap<String, Integer>());
-        log.debug("here");
         Map<String, Integer> vnfrNamesWeighted = vnfrNames.get(networkServiceRecord.getId());
         fillVnfrNames(networkServiceDescriptor, vnfrNamesWeighted);
         vnfrNames.put(networkServiceRecord.getId(), sortByValue(vnfrNamesWeighted));
@@ -292,8 +288,12 @@ public class VnfmManager
       }
 
       for (VirtualNetworkFunctionDescriptor vnfd : networkServiceDescriptor.getVnfd()) {
-        log.debug("Processing VNFD: " + vnfd.getName());
-
+        log.debug(
+            "Processing VNFD ("
+                + vnfd.getName()
+                + ") for NSD ("
+                + networkServiceDescriptor.getName()
+                + ")");
         Map<String, Collection<VimInstance>> vimInstances = new HashMap<>();
 
         for (VirtualDeploymentUnit vdu : vnfd.getVdu()) {
@@ -307,7 +307,11 @@ public class VnfmManager
             instanceNames = body.getVduVimInstances().get(vdu.getName());
           }
           for (String vimInstanceName : instanceNames) {
-            log.debug("Looking for " + vimInstanceName);
+            log.debug(
+                "deployment procedure for ("
+                    + vnfd.getName()
+                    + "). Looking for "
+                    + vimInstanceName);
             VimInstance vimInstance = null;
 
             for (VimInstance vi : vimInstanceRepository.findByProjectId(vdu.getProjectId())) {
@@ -442,10 +446,22 @@ public class VnfmManager
   //As a default operation of the NFVO, it get always the first DeploymentFlavour!
   private VNFDeploymentFlavour getDeploymentFlavour(VirtualNetworkFunctionDescriptor vnfd)
       throws NotFoundException {
+    VNFDeploymentFlavour flavor = null;
     if (!vnfd.getDeployment_flavour().iterator().hasNext()) {
-      throw new NotFoundException("There are no DeploymentFlavour in vnfd: " + vnfd.getName());
+      for (VirtualDeploymentUnit vdu : vnfd.getVdu()) {
+        if (vdu.getComputation_requirement() == null
+            || vdu.getComputation_requirement().isEmpty()) {
+          throw new NotFoundException(
+              "There is no DeploymentFlavour in vnfd or in all VDUs: " + vnfd.getName());
+        } else {
+          flavor = new VNFDeploymentFlavour();
+          flavor.setFlavour_key(vdu.getComputation_requirement());
+        }
+      }
+    } else {
+      flavor = vnfd.getDeployment_flavour().iterator().next();
     }
-    return vnfd.getDeployment_flavour().iterator().next();
+    return flavor;
   }
 
   @Override

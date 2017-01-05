@@ -17,20 +17,18 @@
 
 package org.openbaton.tosca.templates.TopologyTemplate;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import org.openbaton.tosca.exceptions.NotFoundException;
 import org.openbaton.tosca.templates.TopologyTemplate.Nodes.CP.CPNodeTemplate;
 import org.openbaton.tosca.templates.TopologyTemplate.Nodes.NodeTemplate;
 import org.openbaton.tosca.templates.TopologyTemplate.Nodes.VDU.VDUNodeTemplate;
 import org.openbaton.tosca.templates.TopologyTemplate.Nodes.VL.VLNodeTemplate;
 import org.openbaton.tosca.templates.TopologyTemplate.Nodes.VNF.VNFNodeTemplate;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-
-/**
- * Created by rvl on 17.08.16.
- */
+/** Created by rvl on 17.08.16. */
 public class TopologyTemplate {
 
   private Object inputs = null;
@@ -63,14 +61,14 @@ public class TopologyTemplate {
 
   public List<CPNodeTemplate> getCPNodes() {
 
-    List<CPNodeTemplate> cpNodes = new ArrayList<CPNodeTemplate>();
+    List<CPNodeTemplate> cpNodes = new ArrayList<>();
 
     for (String nodeName : node_templates.keySet()) {
 
       NodeTemplate n = node_templates.get(nodeName);
       if (Objects.equals(n.getType(), "tosca.nodes.nfv.CP")) {
 
-        CPNodeTemplate cpNode = new CPNodeTemplate(n, nodeName);
+        CPNodeTemplate cpNode = new CPNodeTemplate(n);
         cpNodes.add(cpNode);
       }
     }
@@ -102,7 +100,6 @@ public class TopologyTemplate {
 
       NodeTemplate n = node_templates.get(nodeName);
       if (Objects.equals(n.getType(), "tosca.nodes.nfv.VL")) {
-
         VLNodeTemplate vduNode = new VLNodeTemplate(n, nodeName);
         vlNodes.add(vduNode);
       }
@@ -111,7 +108,7 @@ public class TopologyTemplate {
     return vlNodes;
   }
 
-  public List<VNFNodeTemplate> getVNFNodes() {
+  public List<VNFNodeTemplate> getVNFNodes() throws NotFoundException {
 
     List<VNFNodeTemplate> vnfNodes = new ArrayList<>();
 

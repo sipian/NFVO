@@ -1,24 +1,26 @@
 /*
- * Copyright (c) 2016 Open Baton (http://www.openbaton.org)
+ * Copyright (c) 2016 Open Baton (http://openbaton.org)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
  */
 
-package org.openbaton.nfvo.api;
+package org.openbaton.nfvo.api.catalogue;
 
+import java.util.List;
+import javax.validation.Valid;
 import org.openbaton.catalogue.mano.descriptor.VirtualNetworkFunctionDescriptor;
 import org.openbaton.exceptions.EntityInUseException;
+import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.nfvo.core.interfaces.VirtualNetworkFunctionManagement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -30,11 +32,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
-
-import javax.validation.Valid;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/vnf-descriptors")
@@ -50,7 +47,7 @@ public class RestVirtualNetworkFunctionDescriptor {
    *
    * @param virtualNetworkFunctionDescriptor : VirtualNetworkFunctionDescriptor to add
    * @return VirtualNetworkFunctionDescriptor: The VirtualNetworkFunctionDescriptor filled with
-   * values from the core
+   *     values from the core
    */
   @RequestMapping(
     method = RequestMethod.POST,
@@ -60,7 +57,8 @@ public class RestVirtualNetworkFunctionDescriptor {
   @ResponseStatus(HttpStatus.CREATED)
   public VirtualNetworkFunctionDescriptor create(
       @RequestBody @Valid VirtualNetworkFunctionDescriptor virtualNetworkFunctionDescriptor,
-      @RequestHeader(value = "project-id") String projectId) {
+      @RequestHeader(value = "project-id") String projectId)
+      throws NotFoundException {
     return vnfdManagement.add(virtualNetworkFunctionDescriptor, projectId);
   }
 
@@ -101,7 +99,7 @@ public class RestVirtualNetworkFunctionDescriptor {
    * Returns the list of the VNF software virtualNetworkFunctionDescriptors available
    *
    * @return List<virtualNetworkFunctionDescriptor>: The list of VNF software
-   * virtualNetworkFunctionDescriptors available
+   *     virtualNetworkFunctionDescriptors available
    */
   @RequestMapping(method = RequestMethod.GET)
   public Iterable<VirtualNetworkFunctionDescriptor> findAll(
@@ -114,7 +112,7 @@ public class RestVirtualNetworkFunctionDescriptor {
    *
    * @param id : The id of the VNF software virtualNetworkFunctionDescriptor
    * @return virtualNetworkFunctionDescriptor: The VNF software virtualNetworkFunctionDescriptor
-   * selected
+   *     selected
    */
   @RequestMapping(value = "{id}", method = RequestMethod.GET)
   public VirtualNetworkFunctionDescriptor findById(
@@ -127,7 +125,7 @@ public class RestVirtualNetworkFunctionDescriptor {
    * Updates the VNF software virtualNetworkFunctionDescriptor
    *
    * @param virtualNetworkFunctionDescriptor : the VNF software virtualNetworkFunctionDescriptor to
-   * be updated
+   *     be updated
    * @param id : the id of VNF software virtualNetworkFunctionDescriptor
    * @return networkServiceDescriptor: the VNF software virtualNetworkFunctionDescriptor updated
    */

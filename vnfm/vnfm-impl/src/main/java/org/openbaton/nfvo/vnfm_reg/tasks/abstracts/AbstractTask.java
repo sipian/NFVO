@@ -17,6 +17,13 @@
 
 package org.openbaton.nfvo.vnfm_reg.tasks.abstracts;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import org.openbaton.catalogue.mano.common.Event;
 import org.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
 import org.openbaton.catalogue.mano.record.NetworkServiceRecord;
@@ -55,21 +62,9 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
+/** Created by lto on 06/08/15. */
 
-/**
- * Created by lto on 06/08/15.
- */
-
-/**
- * Putting these annotations only here won't work.
- */
+/** Putting these annotations only here won't work. */
 @Service
 @Scope("prototype")
 public abstract class AbstractTask implements Callable<NFVMessage>, ApplicationEventPublisherAware {
@@ -170,9 +165,7 @@ public abstract class AbstractTask implements Callable<NFVMessage>, ApplicationE
     } catch (Exception e) {
       genericExceptionHandling(e);
     }
-    /**
-     * Send event finish
-     */
+    /** Send event finish */
     if (result == null) {
       if ((action.ordinal() != Action.ALLOCATE_RESOURCES.ordinal())
           && (action.ordinal() != Action.GRANT_OPERATION.ordinal())) {
@@ -205,6 +198,7 @@ public abstract class AbstractTask implements Callable<NFVMessage>, ApplicationE
   }
 
   private void genericExceptionHandling(Exception e) {
+    e.printStackTrace();
     log.debug("The exception is: " + e.getClass().getName());
     log.debug("The cause is: " + e.getCause().getClass().getName());
     e.printStackTrace();
@@ -404,7 +398,7 @@ public abstract class AbstractTask implements Callable<NFVMessage>, ApplicationE
   protected boolean allVnfrInInactive(NetworkServiceRecord nsr) {
     for (VirtualNetworkFunctionRecord virtualNetworkFunctionRecord : nsr.getVnfr()) {
       if (virtualNetworkFunctionRecord.getStatus().ordinal() < Status.INACTIVE.ordinal()) {
-        log.debug(
+        log.trace(
             "VNFR "
                 + virtualNetworkFunctionRecord.getName()
                 + " is in state: "

@@ -17,6 +17,11 @@
 
 package org.openbaton.nfvo.core.api;
 
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.ExecutionException;
+import javax.annotation.PostConstruct;
 import org.openbaton.catalogue.api.DeployNSRBody;
 import org.openbaton.catalogue.mano.common.Ip;
 import org.openbaton.catalogue.mano.descriptor.InternalVirtualLink;
@@ -25,14 +30,20 @@ import org.openbaton.catalogue.mano.descriptor.VNFComponent;
 import org.openbaton.catalogue.mano.descriptor.VNFDConnectionPoint;
 import org.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
 import org.openbaton.catalogue.mano.descriptor.VirtualNetworkFunctionDescriptor;
-import org.openbaton.catalogue.mano.record.LinkStatus;
 import org.openbaton.catalogue.mano.record.NetworkServiceRecord;
 import org.openbaton.catalogue.mano.record.Status;
 import org.openbaton.catalogue.mano.record.VNFCInstance;
 import org.openbaton.catalogue.mano.record.VNFRecordDependency;
-import org.openbaton.catalogue.mano.record.VirtualLinkRecord;
 import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
-import org.openbaton.catalogue.nfvo.*;
+import org.openbaton.catalogue.nfvo.Action;
+import org.openbaton.catalogue.nfvo.ApplicationEventNFVO;
+import org.openbaton.catalogue.nfvo.HistoryLifecycleEvent;
+import org.openbaton.catalogue.nfvo.Network;
+import org.openbaton.catalogue.nfvo.Subnet;
+import org.openbaton.catalogue.nfvo.VNFCDependencyParameters;
+import org.openbaton.catalogue.nfvo.VNFPackage;
+import org.openbaton.catalogue.nfvo.VimInstance;
+import org.openbaton.catalogue.nfvo.VnfmManagerEndpoint;
 import org.openbaton.catalogue.nfvo.messages.Interfaces.NFVMessage;
 import org.openbaton.catalogue.nfvo.messages.OrVnfmGenericMessage;
 import org.openbaton.catalogue.nfvo.messages.OrVnfmHealVNFRequestMessage;
@@ -41,11 +52,9 @@ import org.openbaton.catalogue.nfvo.messages.VnfmOrHealedMessage;
 import org.openbaton.catalogue.security.Key;
 import org.openbaton.exceptions.BadFormatException;
 import org.openbaton.exceptions.BadRequestException;
+import org.openbaton.exceptions.MissingParameterException;
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.exceptions.PluginException;
-import org.openbaton.exceptions.MissingParameterException;
-import org.openbaton.exceptions.QuotaExceededException;
-import org.openbaton.exceptions.VimDriverException;
 import org.openbaton.exceptions.VimException;
 import org.openbaton.exceptions.WrongStatusException;
 import org.openbaton.nfvo.common.internal.model.EventNFVO;
@@ -69,27 +78,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Scope;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.security.oauth2.common.exceptions.UnauthorizedUserException;
 import org.springframework.stereotype.Service;
 
-import java.text.SimpleDateFormat;
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.concurrent.ExecutionException;
-
-import javax.annotation.PostConstruct;
-
-/**
- * Created by lto on 11/05/15.
- */
+/** Created by lto on 11/05/15. */
 @Service
 @Scope("prototype")
 @ConfigurationProperties
 public class NetworkServiceRecordManagement
     implements org.openbaton.nfvo.core.interfaces.NetworkServiceRecordManagement {
 
-  private Logger log = LoggerFactory.getLogger(this.getClass());
+  private final Logger log = LoggerFactory.getLogger(this.getClass());
 
   @Autowired private EventDispatcher publisher;
 
@@ -151,9 +152,8 @@ public class NetworkServiceRecordManagement
   @Override
   public NetworkServiceRecord onboard(
       String idNsd, String projectID, List keys, Map vduVimInstances, Map configurations)
-      throws InterruptedException, ExecutionException, VimException, NotFoundException,
-          BadFormatException, VimDriverException, QuotaExceededException, PluginException,
-          MissingParameterException, BadRequestException {
+      throws VimException, NotFoundException, PluginException, MissingParameterException,
+          BadRequestException {
     log.info("Looking for NetworkServiceDescriptor with id: " + idNsd);
     NetworkServiceDescriptor networkServiceDescriptor = nsdRepository.findFirstById(idNsd);
     if (!networkServiceDescriptor.getProjectId().equals(projectID)) {
@@ -195,11 +195,10 @@ public class NetworkServiceRecordManagement
       List keys,
       Map vduVimInstances,
       Map configurations)
-      throws ExecutionException, InterruptedException, VimException, NotFoundException,
-          BadFormatException, VimDriverException, QuotaExceededException, PluginException,
-          MissingParameterException, BadRequestException {
+      throws VimException, NotFoundException, PluginException, MissingParameterException,
+          BadRequestException {
     networkServiceDescriptor.setProjectId(projectId);
-    nsdUtils.fetchVimInstances(networkServiceDescriptor, projectId);
+    //    nsdUtils.fetchVimInstances(networkServiceDescriptor, projectId);
     DeployNSRBody body = new DeployNSRBody();
     body.setVduVimInstances(vduVimInstances);
     if (configurations == null) {
@@ -552,7 +551,7 @@ public class NetworkServiceRecordManagement
 
   private void startStopVNFCInstance(
       String id, String idVnf, String idVdu, String idVNFCI, String projectId, Action action)
-      throws NotFoundException, WrongStatusException {
+      throws NotFoundException {
     NetworkServiceRecord networkServiceRecord = getNetworkServiceRecordInAnyState(id);
     if (!networkServiceRecord.getProjectId().equals(projectId)) {
       throw new UnauthorizedUserException(
@@ -841,7 +840,7 @@ public class NetworkServiceRecordManagement
   }
 
   private synchronized NetworkServiceRecord getNetworkServiceRecordInAnyState(String id)
-      throws NotFoundException, WrongStatusException {
+      throws NotFoundException {
     NetworkServiceRecord networkServiceRecord = nsrRepository.findFirstById(id);
     if (networkServiceRecord == null) {
       throw new NotFoundException("No NetworkServiceRecord found with id " + id);
@@ -866,8 +865,8 @@ public class NetworkServiceRecordManagement
 
   private NetworkServiceRecord deployNSR(
       NetworkServiceDescriptor networkServiceDescriptor, String projectID, DeployNSRBody body)
-      throws NotFoundException, BadFormatException, VimException, PluginException,
-          MissingParameterException, BadRequestException {
+      throws NotFoundException, VimException, PluginException, MissingParameterException,
+          BadRequestException {
     log.info("Fetched NetworkServiceDescriptor: " + networkServiceDescriptor.getName());
     log.info("VNFD are: ");
     for (VirtualNetworkFunctionDescriptor virtualNetworkFunctionDescriptor :
@@ -891,11 +890,24 @@ public class NetworkServiceRecordManagement
         } else {
           instanceNames = body.getVduVimInstances().get(vdu.getName());
         }
+        VNFPackage vnfPackage = vnfPackageRepository.findFirstById(vnfd.getVnfPackageLocation());
         if (instanceNames.size() == 0) {
           log.debug("ProjectID: " + projectID);
           for (VimInstance vimInstance : vimInstanceRepository.findByProjectId(projectID)) {
-            instanceNames.add(vimInstance.getName());
+            if (vnfPackage.getVimTypes() == null || vnfPackage.getVimTypes().isEmpty()) {
+              instanceNames.add(vimInstance.getName());
+            } else if (vnfPackage.getVimTypes().contains(vimInstance.getType())) {
+              instanceNames.add(vimInstance.getName());
+            }
           }
+        }
+        if (instanceNames.size() == 0) {
+          throw new org.openbaton.exceptions.BadRequestException(
+              "No Vim Instance found for supporting the VNFD "
+                  + vnfd.getName()
+                  + " (looking for vim type: "
+                  + vnfPackage.getVimTypes()
+                  + ")");
         }
         log.debug("Vim Instances chosen are: " + instanceNames);
         for (String vimInstanceName : instanceNames) {
@@ -904,8 +916,7 @@ public class NetworkServiceRecordManagement
             if (vimInstanceName.equals(vi.getName())) {
               vimInstance = vi;
               log.debug("Found vim instance " + vimInstance.getName());
-              VNFPackage vnfPackage =
-                  vnfPackageRepository.findFirstById(vnfd.getVnfPackageLocation());
+
               if (vnfPackage == null
                   || vnfPackage.getVimTypes() == null
                   || vnfPackage.getVimTypes().size() == 0) {
@@ -934,20 +945,25 @@ public class NetworkServiceRecordManagement
     nsdUtils.checkEndpoint(networkServiceDescriptor, endpoints);
 
     log.trace("Fetched NetworkServiceDescriptor: " + networkServiceDescriptor);
-    NetworkServiceRecord networkServiceRecord;
-    networkServiceRecord = NSRUtils.createNetworkServiceRecord(networkServiceDescriptor);
-    SimpleDateFormat format = new SimpleDateFormat("yyyy.MM.dd 'at' HH:mm:ss z");
-    networkServiceRecord.setCreatedAt(format.format(new Date()));
-    networkServiceRecord.setTask("Onboarding");
-    networkServiceRecord.setKeyNames(new HashSet<String>());
-    if (body != null && body.getKeys() != null && !body.getKeys().isEmpty()) {
-      for (Key key : body.getKeys()) {
-        networkServiceRecord.getKeyNames().add(key.getName());
+    NetworkServiceRecord networkServiceRecord = null;
+    boolean savedNsrSuccessfully = false;
+    int attempt = 0;
+    // this while loop is necessary, because while creating the NSR also a VIM might be changed (newly created networks).
+    // then saving the NSR might produce OptimisticLockingFailureExceptions.
+    while (!savedNsrSuccessfully) {
+      networkServiceRecord = NSRUtils.createNetworkServiceRecord(networkServiceDescriptor);
+      SimpleDateFormat format = new SimpleDateFormat("yyyy.MM.dd 'at' HH:mm:ss z");
+      networkServiceRecord.setCreatedAt(format.format(new Date()));
+      networkServiceRecord.setTask("Onboarding");
+      networkServiceRecord.setKeyNames(new HashSet<String>());
+      if (body != null && body.getKeys() != null && !body.getKeys().isEmpty()) {
+        for (Key key : body.getKeys()) {
+          networkServiceRecord.getKeyNames().add(key.getName());
+        }
       }
-    }
-    log.trace("Creating " + networkServiceRecord);
+      log.trace("Creating " + networkServiceRecord);
 
-    for (VirtualLinkRecord vlr : networkServiceRecord.getVlr()) {
+      //    for (VirtualLinkRecord vlr : networkServiceRecord.getVlr()) {
       for (VirtualNetworkFunctionDescriptor vnfd : networkServiceDescriptor.getVnfd()) {
         for (VirtualDeploymentUnit vdu : vnfd.getVdu()) {
           Collection<String> instanceNames;
@@ -973,49 +989,72 @@ public class NetworkServiceRecordManagement
               }
             }
 
+            if (vimInstance == null) {
+              throw new NotFoundException("Not found VIM instance: " + vimInstanceName);
+            }
+
             //check networks
             for (VNFComponent vnfc : vdu.getVnfc()) {
               for (VNFDConnectionPoint vnfdConnectionPoint : vnfc.getConnection_point()) {
-                if (vnfdConnectionPoint.getVirtual_link_reference().equals(vlr.getName())) {
-                  boolean networkExists = false;
-                  for (Network network : vimInstance.getNetworks()) {
-                    if (network.getName().equals(vlr.getName())
-                        || network.getExtId().equals(vlr.getName())) {
-                      networkExists = true;
-                      vlr.setStatus(LinkStatus.NORMALOPERATION);
-                      vlr.setVim_id(vdu.getId());
-                      vlr.setExtId(network.getExtId());
-                      vlr.getConnection().add(vnfdConnectionPoint.getId());
-                      break;
-                    }
-                  }
-                  if (!networkExists) {
-                    Network network = new Network();
-                    network.setName(vlr.getName());
-                    network.setSubnets(new HashSet<Subnet>());
-                    network = networkManagement.add(vimInstance, network);
-                    vlr.setStatus(LinkStatus.NORMALOPERATION);
-                    vlr.setVim_id(vdu.getId());
-                    vlr.setExtId(network.getExtId());
-                    vlr.getConnection().add(vnfdConnectionPoint.getId());
+                //                if (vnfdConnectionPoint.getVirtual_link_reference().equals(vlr.getName())) {
+                boolean networkExists = false;
+                if (vimInstance.getNetworks() == null)
+                  throw new VimException(
+                      "VIM instance " + vimInstance.getName() + "does not have networks ");
+                for (Network network : vimInstance.getNetworks()) {
+                  //                    if (network.getName().equals(vlr.getName()) || network.getExtId().equals(vlr.getName())) {
+                  if (network.getName().equals(vnfdConnectionPoint.getVirtual_link_reference())
+                      || network
+                          .getExtId()
+                          .equals(vnfdConnectionPoint.getVirtual_link_reference())) {
+                    networkExists = true;
+                    //                      vlr.setStatus(LinkStatus.NORMALOPERATION);
+                    //                      vlr.setVim_id(vdu.getId());
+                    //                      vlr.setExtId(network.getExtId());
+                    //                      vlr.getConnection().add(vnfdConnectionPoint.getId());
+                    break;
                   }
                 }
+                if (!networkExists) {
+                  Network network = new Network();
+                  network.setName(vnfdConnectionPoint.getVirtual_link_reference());
+                  network.setSubnets(new HashSet<Subnet>());
+                  network = networkManagement.add(vimInstance, network);
+                  //                    vlr.setStatus(LinkStatus.NORMALOPERATION);
+                  //                    vlr.setVim_id(vdu.getId());
+                  //                    vlr.setExtId(network.getExtId());
+                  //                    vlr.getConnection().add(vnfdConnectionPoint.getId());
+                }
+                //       }
               }
             }
           }
         }
       }
+      //    }
+
+      NSRUtils.setDependencies(networkServiceDescriptor, networkServiceRecord);
+
+      networkServiceRecord.setProjectId(projectID);
+      try {
+        networkServiceRecord = nsrRepository.save(networkServiceRecord);
+        savedNsrSuccessfully = true;
+        log.debug(
+            "Persisted NSR "
+                + networkServiceRecord.getName()
+                + ". Got id: "
+                + networkServiceRecord.getId());
+      } catch (OptimisticLockingFailureException e) {
+        if (attempt >= 3) {
+          log.error(
+              "After 4 attempts there is still an OptimisticLockingFailureException when creating the NSR. Stop trying.");
+          throw e;
+        }
+        log.warn("OptimisticLockingFailureException while creating the NSR. We will try it again.");
+        savedNsrSuccessfully = false;
+        attempt++;
+      }
     }
-
-    NSRUtils.setDependencies(networkServiceDescriptor, networkServiceRecord);
-
-    networkServiceRecord.setProjectId(projectID);
-    networkServiceRecord = nsrRepository.save(networkServiceRecord);
-    log.debug(
-        "Persisted NSR "
-            + networkServiceRecord.getName()
-            + ". Got id: "
-            + networkServiceRecord.getId());
 
     if (networkServiceDescriptor.getVnfd() != null) {
       for (VirtualNetworkFunctionDescriptor virtualNetworkFunctionDescriptor :
@@ -1181,9 +1220,25 @@ public class NetworkServiceRecordManagement
     }
   }
 
+  private VirtualNetworkFunctionRecord getVNFR(NetworkServiceRecord nsr, String vnfrName) {
+    for (VirtualNetworkFunctionRecord vnfr : nsr.getVnfr()) {
+      if (vnfr.getName().equalsIgnoreCase(vnfrName)) return vnfr;
+    }
+    log.warn(
+        "No VNFR with name " + vnfrName + " in NSR " + nsr.getName() + " (" + nsr.getId() + ")");
+    return null;
+  }
+
+  private boolean isModifyHasBeenExecuted(VirtualNetworkFunctionRecord vnfr) {
+    for (HistoryLifecycleEvent historyLifecycleEvent : vnfr.getLifecycle_event_history()) {
+      if (historyLifecycleEvent.getEvent().equalsIgnoreCase("MODIFY")
+          || historyLifecycleEvent.getEvent().equalsIgnoreCase("CONFIGURE")) return true;
+    }
+    return false;
+  }
+
   @Override
-  public void resume(String id, String projectId)
-      throws NotFoundException, WrongStatusException, InterruptedException {
+  public void resume(String id, String projectId) throws NotFoundException, WrongStatusException {
     NetworkServiceRecord networkServiceRecord = getNetworkServiceRecordInAnyState(id);
     if (!networkServiceRecord.getProjectId().equals(projectId)) {
       throw new UnauthorizedUserException(
@@ -1191,21 +1246,90 @@ public class NetworkServiceRecordManagement
     }
     log.info("Resuming NSR with id: " + id);
 
-    for (VirtualNetworkFunctionRecord vnfr : networkServiceRecord.getVnfr()) {
-      if (vnfr.getStatus().ordinal() == (Status.ERROR.ordinal())) {
-        OrVnfmGenericMessage orVnfmGenericMessage = new OrVnfmGenericMessage();
-        orVnfmGenericMessage.setVnfr(vnfr);
+    networkServiceRecord.setStatus(Status.RESUMING);
 
-        Set<VNFRecordDependency> vnfRecordDependencies = networkServiceRecord.getVnf_dependency();
-        for (VNFRecordDependency vnfRecordDependency : vnfRecordDependencies) {
-          log.debug(vnfRecordDependency.getTarget() + " == " + vnfr.getName());
-          if (vnfRecordDependency.getTarget().equals(vnfr.getName())) {
+    for (VNFRecordDependency vnfrDependency : networkServiceRecord.getVnf_dependency()) {
+      // Check for sources and target ready to have their dependencies resolved
+      VirtualNetworkFunctionRecord vnfrTarget =
+          getVNFR(networkServiceRecord, vnfrDependency.getTarget());
+      if (vnfrTarget.getStatus().ordinal() == (Status.INITIALIZED.ordinal())) {
+
+        List<VirtualNetworkFunctionRecord> resolvableVnfrSources = new ArrayList<>();
+        boolean readyToResolve = true;
+        for (String vnfrSourceName : vnfrDependency.getIdType().keySet()) {
+          VirtualNetworkFunctionRecord vnfrSource = getVNFR(networkServiceRecord, vnfrSourceName);
+
+          // Skipping dependency with a source in error
+          if (vnfrSource.getStatus().ordinal() == (Status.ERROR.ordinal())
+              && !isModifyHasBeenExecuted(vnfrSource)
+              && vnfrTarget.getStatus().ordinal() < Status.INACTIVE.ordinal()) {
+            log.info(
+                "Not resolving dependencies for target: "
+                    + vnfrTarget.getName()
+                    + " - Its source: "
+                    + vnfrSource.getName()
+                    + " it is not ready (ERROR state)");
+            readyToResolve = false;
+          }
+          // Resolving ready dependencies
+          else {
+            log.info(
+                "Found resolvable dependency with source: "
+                    + vnfrSource.getName()
+                    + " and target: "
+                    + vnfrTarget.getName());
+            resolvableVnfrSources.add(vnfrSource);
+          }
+        }
+
+        // Filling parameter for resolvable VNFR sources
+        for (VirtualNetworkFunctionRecord resolvableVnfrSource : resolvableVnfrSources) {
+          dependencyManagement.fillDependecyParameters(resolvableVnfrSource);
+        }
+
+        if (readyToResolve) {
+          log.info("Sending MODIFY message to vnfr target: " + vnfrDependency.getTarget());
+
+          OrVnfmGenericMessage orVnfmGenericMessage =
+              new OrVnfmGenericMessage(vnfrTarget, Action.MODIFY);
+
+          // Retrieve from VNFR Dependency Repository the dependency record for VNFR target with ready dependencies
+          VNFRecordDependency resolvableVnfrDependency =
+              vnfRecordDependencyRepository.findFirstById(vnfrDependency.getId());
+          log.debug("Resolvable VNFR Dependency is: " + resolvableVnfrDependency);
+          orVnfmGenericMessage.setVnfrd(resolvableVnfrDependency);
+          vnfmManager.sendMessageToVNFR(vnfrTarget, orVnfmGenericMessage);
+
+        } else {
+          log.info("Not sending MODIFY message to vnfr target: " + vnfrDependency.getTarget());
+        }
+      }
+    }
+
+    // Resuming
+    for (VirtualNetworkFunctionRecord failedVnfr : networkServiceRecord.getVnfr()) {
+
+      // Send resume to VNFR in error
+      if (failedVnfr.getStatus().ordinal() == (Status.ERROR.ordinal())) {
+        failedVnfr.setStatus(Status.RESUMING);
+        failedVnfr = vnfrRepository.save(failedVnfr);
+        OrVnfmGenericMessage orVnfmGenericMessage = new OrVnfmGenericMessage();
+        orVnfmGenericMessage.setVnfr(failedVnfr);
+        log.debug("Setting VNFR Dependency for RESUMED VNFR");
+        // Setting VNFR Dependency for RESUMED VNFR
+        for (VNFRecordDependency vnfRecordDependency : networkServiceRecord.getVnf_dependency()) {
+          if (vnfRecordDependency.getTarget().equals(failedVnfr.getName())) {
+            log.debug(
+                "Setting dependency to RESUMED VNFR: "
+                    + vnfRecordDependency.getTarget()
+                    + " == "
+                    + failedVnfr.getName());
             orVnfmGenericMessage.setVnfrd(vnfRecordDependency);
           }
         }
         orVnfmGenericMessage.setAction(Action.RESUME);
-        log.info("Sending resume message for VNFR: " + vnfr.getId());
-        vnfmManager.sendMessageToVNFR(vnfr, orVnfmGenericMessage);
+        log.info("Sending resume message for VNFR: " + failedVnfr.getId());
+        vnfmManager.sendMessageToVNFR(failedVnfr, orVnfmGenericMessage);
       }
     }
   }

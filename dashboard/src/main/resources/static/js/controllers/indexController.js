@@ -82,7 +82,7 @@ app.controller('LoginController', function ($scope, AuthService, Session, $rootS
      */
     $scope.login = function (credential) {
         AuthService.login(credential, $scope.URL);
-        setTimeout(showLoginError, 2000);
+        setTimeout(showLoginError, 10000);
     };
 
 
@@ -219,23 +219,22 @@ app.controller('IndexCtrl', function ($document, $scope, $compile, $routeParams,
         console.log(newValue);
         if (!angular.isUndefined(newValue) && !angular.isUndefined(oldValue)) {
             $cookieStore.put('project', newValue);
-
             loadNumbers();
             loadQuota();
             getConfig();
             loadCurrentUser();
             getVersion();
+            
 
         }
-        if (!angular.isUndefined(newValue) && angular.isUndefined(oldValue)) {
+        else if (!angular.isUndefined(newValue) && angular.isUndefined(oldValue)) {
             $cookieStore.put('project', newValue);
-
             loadNumbers();
             loadQuota();
             getConfig();
             loadCurrentUser();
             getVersion();
-        }
+        } 
 
 
     });
@@ -523,6 +522,23 @@ $scope.rcdownload = function() {
 
  };
 
+    $scope.postNew = function() {
+      if ($scope.newPassword.localeCompare($scope.newPassword1) == 0) {
+        $scope.passwordData = {};
+        $scope.passwordData.old_pwd = $scope.oldPassword;
+        $scope.passwordData.new_pwd = $scope.newPassword;
+        http.put(url + '/users/changepwd', JSON.stringify($scope.passwordData))
+        .success(function (response) {
+          alert("The password has been successfully changed")
+          AuthService.logout()})
+        .error(function (data, status) {
+            console.error('STATUS: ' + status + ' DATA: ' + JSON.stringify(data));
+            alert('STATUS: ' + status + ' DATA: ' + JSON.stringify(data))
+            ? "" : location.reload();
+        });
+    } else {
+      alert("The new passwords are not the same");
+    }
 
 
 

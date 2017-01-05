@@ -17,6 +17,7 @@
 
 package org.openbaton.nfvo.vnfm_reg.tasks;
 
+import java.util.Date;
 import org.openbaton.catalogue.mano.common.Event;
 import org.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
 import org.openbaton.catalogue.mano.record.VNFCInstance;
@@ -33,11 +34,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
-
-/**
- * Created by fmu on 19/08/16.
- */
+/** Created by fmu on 19/08/16. */
 @Service
 @Scope("prototype")
 @ConfigurationProperties(prefix = "nfvo.stop")
@@ -70,18 +67,18 @@ public class StopTask extends AbstractTask {
     log.info("Stopped VNFR: " + virtualNetworkFunctionRecord.getName());
     VirtualNetworkFunctionRecord existing =
         vnfrRepository.findFirstById(virtualNetworkFunctionRecord.getId());
-    log.debug("vnfr arrived version= " + virtualNetworkFunctionRecord.getHb_version());
-    log.debug("vnfr existing version= " + existing.getHb_version());
+    log.trace("VNFR existing hibernate version = " + existing.getHb_version());
+    log.trace("VNFR reiceived hibernate version = " + virtualNetworkFunctionRecord.getHb_version());
 
     for (VirtualDeploymentUnit virtualDeploymentUnit : virtualNetworkFunctionRecord.getVdu()) {
       for (VNFCInstance vnfcInstance : virtualDeploymentUnit.getVnfc_instance()) {
-        log.trace("VNFCI arrived version: " + vnfcInstance.getVersion());
+        log.trace("VNFCI received hibernate version = " + vnfcInstance.getVersion());
       }
     }
 
     for (VirtualDeploymentUnit virtualDeploymentUnit : existing.getVdu()) {
       for (VNFCInstance vnfcInstance : virtualDeploymentUnit.getVnfc_instance()) {
-        log.trace("VNFCI existing version: " + vnfcInstance.getVersion());
+        log.trace("VNFCI existing hibernate version = " + vnfcInstance.getVersion());
       }
     }
 

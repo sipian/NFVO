@@ -17,7 +17,16 @@
 
 package org.openbaton.nfvo.core.core;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import javax.annotation.PostConstruct;
 import org.openbaton.catalogue.mano.record.NetworkServiceRecord;
+import org.openbaton.catalogue.mano.record.Status;
 import org.openbaton.catalogue.mano.record.VNFRecordDependency;
 import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.openbaton.catalogue.nfvo.Action;
@@ -33,13 +42,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
-import java.util.*;
-import java.util.Map.Entry;
-
-/**
- * Created by lto on 19/08/15.
- */
+/** Created by lto on 19/08/15. */
 @Service
 @Scope
 public class DependencyQueuer implements org.openbaton.nfvo.core.interfaces.DependencyQueuer {
@@ -52,7 +55,7 @@ public class DependencyQueuer implements org.openbaton.nfvo.core.interfaces.Depe
 
   @Autowired private VNFRDependencyRepository vnfrDependencyRepository;
 
-  private Logger log = LoggerFactory.getLogger(this.getClass());
+  private final Logger log = LoggerFactory.getLogger(this.getClass());
 
   private Map<String, Set<String>> queues;
 
@@ -74,10 +77,6 @@ public class DependencyQueuer implements org.openbaton.nfvo.core.interfaces.Depe
    * Check all dependencies that are waiting in in the map queues for the source vnfr to get
    * instantiated. If the vnfr that got ready was the last source in a waiting dependency send a
    * modify message to the target vnfr.
-   *
-   * @param vnfrSourceName
-   * @param nsrFather
-   * @throws NotFoundException
    */
   @Override
   public synchronized void releaseVNFR(String vnfrSourceName, NetworkServiceRecord nsrFather)
@@ -109,20 +108,14 @@ public class DependencyQueuer implements org.openbaton.nfvo.core.interfaces.Depe
             if (vnfr.getName().equals(vnfRecordDependency.getTarget()))
               target = vnfrRepository.findFirstById(vnfr.getId());
           log.info("Found target of relation: " + target.getName());
-
-          //                    for (LifecycleEvent lifecycleEvent : target.getLifecycle_event()) {
-          //                        if (lifecycleEvent.getEvent().ordinal() == Event.CONFIGURE.ordinal()) {
-          //                            LinkedHashSet<String> strings = new LinkedHashSet<>();
-          //                            strings.addAll(lifecycleEvent.getLifecycle_events());
-          //                            lifecycleEvent.setLifecycle_events(Arrays.asList(strings.toArray(new String[1])));
-          //                        }
-          //                    }
-          log.debug("Sending MODIFY to " + target.getName());
-          OrVnfmGenericMessage orVnfmGenericMessage =
-              new OrVnfmGenericMessage(target, Action.MODIFY);
-          orVnfmGenericMessage.setVnfrd(vnfRecordDependency);
-          vnfmManager.sendMessageToVNFR(target, orVnfmGenericMessage);
-          dependencyIdToBeRemoved.add(dependencyId);
+          if (nsrFather.getStatus().ordinal() != Status.ERROR.ordinal()) {
+            log.debug("Sending MODIFY to " + target.getName());
+            OrVnfmGenericMessage orVnfmGenericMessage =
+                new OrVnfmGenericMessage(target, Action.MODIFY);
+            orVnfmGenericMessage.setVnfrd(vnfRecordDependency);
+            vnfmManager.sendMessageToVNFR(target, orVnfmGenericMessage);
+            dependencyIdToBeRemoved.add(dependencyId);
+          }
         }
       }
     }

@@ -17,6 +17,9 @@
 
 package org.openbaton.nfvo.vnfm_reg.tasks;
 
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import org.openbaton.catalogue.mano.common.Event;
 import org.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
 import org.openbaton.catalogue.mano.record.Status;
@@ -33,13 +36,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-
-/**
- * Created by lto on 06/08/15.
- */
+/** Created by lto on 06/08/15. */
 @Service
 @Scope("prototype")
 @ConfigurationProperties
@@ -68,7 +65,11 @@ public class GrantoperationTask extends AbstractTask {
       log.warn("Checking quota is disabled, please consider to enable it");
       setHistoryLifecycleEvent(new Date());
       saveVirtualNetworkFunctionRecord();
-      log.debug("Hibernate version is: " + virtualNetworkFunctionRecord.getHb_version());
+      log.trace(
+          "VNFR ("
+              + virtualNetworkFunctionRecord.getId()
+              + ") received hibernate version is: "
+              + virtualNetworkFunctionRecord.getHb_version());
       OrVnfmGrantLifecycleOperationMessage nfvMessage = new OrVnfmGrantLifecycleOperationMessage();
       nfvMessage.setGrantAllowed(true);
       nfvMessage.setVduVim(new HashMap<String, VimInstance>());
@@ -87,16 +88,29 @@ public class GrantoperationTask extends AbstractTask {
       //Save the vnfr since in the grantLifecycleOperation method we use vdu.getId()
       setHistoryLifecycleEvent(new Date());
       saveVirtualNetworkFunctionRecord();
+      for (VirtualDeploymentUnit virtualDeploymentUnit : virtualNetworkFunctionRecord.getVdu()) {
+        log.debug(
+            "For vdu "
+                + virtualDeploymentUnit.getName()
+                + " possible vim instances are: "
+                + virtualDeploymentUnit.getVimInstanceName());
+      }
       Map<String, VimInstance> vimInstancesChosen =
           lifecycleOperationGranting.grantLifecycleOperation(virtualNetworkFunctionRecord);
-      log.debug("VimInstances chosen are: " + vimInstancesChosen);
+      for (Map.Entry<String, VimInstance> entry : vimInstancesChosen.entrySet())
+        log.info("VimInstances chosen are: " + entry.getKey() + ": " + entry.getValue().getName());
+      log.trace("VimInstances chosen are: " + vimInstancesChosen);
       log.debug(vimInstancesChosen.size() + " == " + virtualNetworkFunctionRecord.getVdu().size());
       if (vimInstancesChosen.size() == virtualNetworkFunctionRecord.getVdu().size()) {
         log.info(
             "Finished task: GrantOperation on VNFR: " + virtualNetworkFunctionRecord.getName());
 
         saveVirtualNetworkFunctionRecord();
-        log.debug("Hibernate version is: " + virtualNetworkFunctionRecord.getHb_version());
+        log.trace(
+            "VNFR ("
+                + virtualNetworkFunctionRecord.getId()
+                + ") current hibernate version is: "
+                + virtualNetworkFunctionRecord.getHb_version());
         OrVnfmGrantLifecycleOperationMessage nfvMessage =
             new OrVnfmGrantLifecycleOperationMessage();
         nfvMessage.setGrantAllowed(true);
@@ -108,15 +122,13 @@ public class GrantoperationTask extends AbstractTask {
       } else {
         // there are not enough resources for deploying VNFR
         log.error(
-            "Not enough resources for deploying VirtualNetworkFunctionRecord "
-                + virtualNetworkFunctionRecord.getName());
+            "Not enough resources for deploying VNFR " + virtualNetworkFunctionRecord.getName());
         virtualNetworkFunctionRecord.setStatus(Status.ERROR);
         saveVirtualNetworkFunctionRecord();
         vnfmManager.findAndSetNSRStatus(virtualNetworkFunctionRecord);
         return new OrVnfmErrorMessage(
             virtualNetworkFunctionRecord,
-            "Not enough resources for deploying VirtualNetworkFunctionRecord "
-                + virtualNetworkFunctionRecord.getName());
+            "Not enough resources for deploying VNFR " + virtualNetworkFunctionRecord.getName());
       }
     }
   }
@@ -134,6 +146,6 @@ public class GrantoperationTask extends AbstractTask {
   @Override
   protected void setDescription() {
     description =
-        "All the resources that are contained in this VNFR were granted to be deployed in the chosen vim(s)";
+        "All the resources that are contained in this VNFR were granted to be deployed in the chosen VIM(s)";
   }
 }

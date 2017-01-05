@@ -1,26 +1,25 @@
 /*
- * Copyright (c) 2016 Open Baton (http://www.openbaton.org)
+ * Copyright (c) 2016 Open Baton (http://openbaton.org)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
  */
 
-package org.openbaton.nfvo.api;
+package org.openbaton.nfvo.api.admin;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-
-import org.openbaton.catalogue.security.Role;
+import java.util.List;
+import javax.validation.Valid;
 import org.openbaton.catalogue.security.User;
 import org.openbaton.exceptions.BadRequestException;
 import org.openbaton.exceptions.NotAllowedException;
@@ -39,10 +38,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
-
-import javax.validation.Valid;
 
 @RestController
 @RequestMapping("/api/v1/users")
@@ -88,11 +83,9 @@ public class RestUsers {
       throws NotAllowedException, NotFoundException, BadRequestException {
     log.info("Removing user with id " + id);
     if (isAdmin()) {
-      /**
-       * Modified to work with the api-doc branch.
-       */
+      /** Modified to work with the api-doc branch. */
       userManagement.delete(null);
-      //      if (!getCurrentUser().getId().equals(id)) {
+      //      if (!userManagement.getCurrentUser().getId().equals(id)) {
       //        User user = userManagement.query(id);
       //        userManagement.delete(user);
       //      } else {
@@ -178,19 +171,35 @@ public class RestUsers {
   public void changePassword(@RequestBody /*@Valid*/ JsonObject newPwd)
       throws UnauthorizedUserException, PasswordWeakException {
     log.debug("Changing password");
-    /**
-     * Modified to work with the api-doc branch.
-     */
+    /** Modified to work with the api-doc branch. */
     //    JsonObject jsonObject = gson.fromJson(newPwd, JsonObject.class);
     //    userManagement.changePassword(
     //        jsonObject.get("old_pwd").getAsString(), jsonObject.get("new_pwd").getAsString());
     userManagement.changePassword("old_pwd", "new_pwd");
   }
 
+  @RequestMapping(
+    value = "changepwd/{username}",
+    method = RequestMethod.PUT,
+    consumes = MediaType.APPLICATION_JSON_VALUE
+  )
+  @ResponseStatus(HttpStatus.ACCEPTED)
+  public void changePasswordOf(
+      @PathVariable("username") String username, @RequestBody /*@Valid*/ JsonObject newPwd)
+      throws UnauthorizedUserException, PasswordWeakException, NotFoundException,
+          NotAllowedException {
+    log.debug("Changing password of user " + username);
+    if (isAdmin()) {
+      JsonObject jsonObject = gson.fromJson(newPwd, JsonObject.class);
+      userManagement.changePasswordOf(username, jsonObject.get("new_pwd").getAsString());
+    } else {
+      throw new NotAllowedException(
+          "Forbidden to change password of other users. Only admins can do this.");
+    }
+  }
+
   public boolean isAdmin() throws NotAllowedException, NotFoundException {
-    /**
-     * Modified to work with the api-doc branch.
-     */
+    /** Modified to work with the api-doc branch. */
     //    User currentUser = userManagement.getCurrentUser();
     //    log.trace("Check user if admin: " + currentUser.getUsername());
     //    for (Role role : currentUser.getRoles()) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Open Baton (http://www.openbaton.org)
+ * Copyright (c) 2016 Open Baton (http://openbaton.org)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,9 +19,7 @@ package org.openbaton.nfvo.api.exceptions;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-/**
- * Created by gca on 28/08/15.
- */
+/** Created by gca on 28/08/15. */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ExceptionResource {
 

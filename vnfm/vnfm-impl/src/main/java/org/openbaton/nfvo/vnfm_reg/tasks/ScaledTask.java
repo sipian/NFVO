@@ -17,6 +17,10 @@
 
 package org.openbaton.nfvo.vnfm_reg.tasks;
 
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map.Entry;
 import org.openbaton.catalogue.mano.common.Event;
 import org.openbaton.catalogue.mano.common.Ip;
 import org.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
@@ -39,14 +43,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map.Entry;
-
-/**
- * Created by lto on 06/08/15.
- */
+/** Created by lto on 06/08/15. */
 @Service
 @Scope("prototype")
 public class ScaledTask extends AbstractTask {
@@ -83,17 +80,27 @@ public class ScaledTask extends AbstractTask {
         "NFVO: VirtualNetworkFunctionRecord "
             + virtualNetworkFunctionRecord.getName()
             + " has finished scaling");
-    log.trace("HB_VERSION == " + virtualNetworkFunctionRecord.getHb_version());
+    log.trace(
+        "VNFR ("
+            + virtualNetworkFunctionRecord.getId()
+            + ") received hibernate version = "
+            + virtualNetworkFunctionRecord.getHb_version());
     setHistoryLifecycleEvent(new Date());
     saveVirtualNetworkFunctionRecord();
 
     //If the VNFCInstace is in standby the NFVO doesn't have to configure the VNF source dependencies
     if (vnfcInstance != null) {
-      log.debug("The current vnfcInstance is: " + vnfcInstance.toString());
+      log.debug(
+          "The current VNFC for VNFR ("
+              + virtualNetworkFunctionRecord.getId()
+              + ") instance is: "
+              + vnfcInstance.toString());
       try {
-        log.debug("Saving VNFCInstance");
-        log.debug("Status of unsaved vnfcinstance is: " + vnfcInstance.getState());
-
+        log.debug(
+            "Saving VNFC instance "
+                + vnfcInstance.getId()
+                + ". Status of unsaved VNFC instance is: "
+                + vnfcInstance.getState());
         for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
           for (VNFCInstance vnfcInstanceTmp : vdu.getVnfc_instance()) {
             if (vnfcInstanceTmp.getHostname().equals(vnfcInstance.getHostname())
@@ -106,7 +113,11 @@ public class ScaledTask extends AbstractTask {
             }
           }
         }
-        log.debug("Status of saved vnfcinstance is: " + vnfcInstance.getState());
+        log.debug(
+            "Status of saved VNFC instance ("
+                + vnfcInstance.getId()
+                + ") is: "
+                + vnfcInstance.getState());
       } catch (Exception e) {
         e.printStackTrace();
       }
@@ -118,7 +129,8 @@ public class ScaledTask extends AbstractTask {
     List<VNFRecordDependency> dependenciesSource =
         dependencyManagement.getDependencyForAVNFRecordSource(virtualNetworkFunctionRecord);
     log.debug(
-        virtualNetworkFunctionRecord.getName()
+        "VNFR "
+            + virtualNetworkFunctionRecord.getName()
             + " is source of "
             + dependenciesSource.size()
             + " dependencies");
@@ -185,7 +197,11 @@ public class ScaledTask extends AbstractTask {
               break;
             }
           }
-          log.debug("Added VNFCInstance: " + vnfcInstance);
+          log.debug(
+              "Added VNFC instance: "
+                  + vnfcInstance
+                  + " for VNFR "
+                  + virtualNetworkFunctionRecord.getId());
 
           //                    vnfcInstanceRepository.save(vnfcInstance);
 
@@ -225,7 +241,11 @@ public class ScaledTask extends AbstractTask {
 
           //need to update dependency
           vnfRecordDependencyRepository.save(dependency);
-          log.debug("Dependency updated: " + dependency);
+          log.debug(
+              "VNFR "
+                  + virtualNetworkFunctionRecord.getId()
+                  + " updated dependencies: "
+                  + dependency);
 
           vnfmSender.sendCommand(
               message, vnfmRegister.getVnfm(virtualNetworkFunctionRecord.getEndpoint()));
@@ -233,7 +253,7 @@ public class ScaledTask extends AbstractTask {
       }
     }
     try {
-      log.debug("Saving VNFCInstance");
+      log.debug("Saving VNFC instance " + vnfcInstance.getId());
       vnfcInstanceRepository.save(vnfcInstance);
     } catch (Exception e) {
       e.printStackTrace();

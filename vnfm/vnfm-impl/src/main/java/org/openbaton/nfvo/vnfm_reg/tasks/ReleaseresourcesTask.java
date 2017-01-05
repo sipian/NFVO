@@ -17,6 +17,7 @@
 
 package org.openbaton.nfvo.vnfm_reg.tasks;
 
+import java.util.Date;
 import org.openbaton.catalogue.mano.common.Event;
 import org.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
 import org.openbaton.catalogue.mano.record.VNFCInstance;
@@ -27,11 +28,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
-
-/**
- * Created by lto on 06/08/15.
- */
+/** Created by lto on 06/08/15. */
 @Service
 @Scope("prototype")
 public class ReleaseresourcesTask extends AbstractTask {
@@ -43,9 +40,17 @@ public class ReleaseresourcesTask extends AbstractTask {
     log.info("Release resources for VNFR: " + virtualNetworkFunctionRecord.getName());
 
     for (VirtualDeploymentUnit virtualDeploymentUnit : virtualNetworkFunctionRecord.getVdu()) {
-      log.debug("Removing VDU: " + virtualDeploymentUnit.getHostname());
+      log.debug(
+          "Removing VDU: "
+              + virtualDeploymentUnit.getHostname()
+              + " from VNFR "
+              + virtualNetworkFunctionRecord.getId());
       for (VNFCInstance vnfcInstance : virtualDeploymentUnit.getVnfc_instance()) {
-        log.debug("Removing VNFCInstance: " + vnfcInstance);
+        log.debug(
+            "Removing VNFC instance: "
+                + vnfcInstance
+                + " from VNFR "
+                + virtualNetworkFunctionRecord.getId());
         this.resourceManagement.release(virtualDeploymentUnit, vnfcInstance);
       }
     }

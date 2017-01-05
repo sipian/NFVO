@@ -1,22 +1,22 @@
 /*
- * Copyright (c) 2016 Open Baton (http://www.openbaton.org)
+ * Copyright (c) 2016 Open Baton (http://openbaton.org)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
  */
 
-package org.openbaton.nfvo.api;
+package org.openbaton.nfvo.api.catalogue;
 
+import javax.validation.Valid;
 import org.openbaton.catalogue.mano.descriptor.VNFForwardingGraphDescriptor;
 import org.openbaton.nfvo.core.interfaces.VNFFGManagement;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,8 +24,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
-
-import javax.validation.Valid;
 
 @RestController
 @RequestMapping("/api/v1//vnf-forwarding-graphs")
@@ -43,7 +41,7 @@ public class RestVNFFG {
    *
    * @param vnfForwardingGraphDescriptor : VNFFG to add
    * @return vnfForwardingGraphDescriptor: The vnfForwardingGraphDescriptor filled with values from
-   * the core
+   *     the core
    */
   @RequestMapping(
     method = RequestMethod.POST,
@@ -93,7 +91,7 @@ public class RestVNFFG {
    * Updates the VNF software vnfForwardingGraphDescriptor
    *
    * @param vnfForwardingGraphDescriptor : the VNF software vnfForwardingGraphDescriptor to be
-   * updated
+   *     updated
    * @param id : the id of VNF software vnfForwardingGraphDescriptor
    * @return networkServiceDescriptor: the VNF software vnfForwardingGraphDescriptor updated
    */

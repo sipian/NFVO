@@ -17,6 +17,7 @@
 
 package org.openbaton.nfvo.vnfm_reg.tasks;
 
+import java.util.Date;
 import org.openbaton.catalogue.mano.common.Event;
 import org.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
 import org.openbaton.catalogue.mano.record.VNFCInstance;
@@ -33,11 +34,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
-
-/**
- * Created by lto on 06/08/15.
- */
+/** Created by lto on 06/08/15. */
 @Service
 @Scope("prototype")
 @ConfigurationProperties(prefix = "nfvo.start")
@@ -70,18 +67,18 @@ public class StartTask extends AbstractTask {
     log.info("Started VNFR: " + virtualNetworkFunctionRecord.getName());
     VirtualNetworkFunctionRecord existing =
         vnfrRepository.findFirstById(virtualNetworkFunctionRecord.getId());
-    log.trace("vnfr arrived version= " + virtualNetworkFunctionRecord.getHb_version());
-    log.trace("vnfr existing version= " + existing.getHb_version());
+    log.trace("VNFR existing hibernate version = " + existing.getHb_version());
+    log.trace("VNFR reiceived hibernate version = " + virtualNetworkFunctionRecord.getHb_version());
 
     for (VirtualDeploymentUnit virtualDeploymentUnit : virtualNetworkFunctionRecord.getVdu()) {
       for (VNFCInstance vnfcInstance : virtualDeploymentUnit.getVnfc_instance()) {
-        log.trace("VNFCI arrived version: " + vnfcInstance.getVersion());
+        log.trace("VNFCI received hibernate version = " + vnfcInstance.getVersion());
       }
     }
 
     for (VirtualDeploymentUnit virtualDeploymentUnit : existing.getVdu()) {
       for (VNFCInstance vnfcInstance : virtualDeploymentUnit.getVnfc_instance()) {
-        log.trace("VNFCI existing version: " + vnfcInstance.getVersion());
+        log.trace("VNFCI existing hibernate version = " + vnfcInstance.getVersion());
       }
     }
 
@@ -93,7 +90,9 @@ public class StartTask extends AbstractTask {
           getNextToCallStart(virtualNetworkFunctionRecord);
       if (nextToCallStart != null) {
         log.info(
-            "Calling START to: " + nextToCallStart.getName() + " because is the next in order");
+            "Calling START for VNFR: "
+                + nextToCallStart.getName()
+                + " because is the next in order (ordered deployment is enabled in the openbaton.properties)");
         vnfmManager.removeVnfrName(
             virtualNetworkFunctionRecord.getParent_ns_id(), nextToCallStart.getName());
         sendStart(nextToCallStart);

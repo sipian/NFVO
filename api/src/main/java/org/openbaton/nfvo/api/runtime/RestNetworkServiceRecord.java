@@ -1,26 +1,29 @@
 /*
- * Copyright (c) 2016 Open Baton (http://www.openbaton.org)
+ * Copyright (c) 2016 Open Baton (http://openbaton.org)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
  */
 
-package org.openbaton.nfvo.api;
+package org.openbaton.nfvo.api.runtime;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-
 import com.google.gson.reflect.TypeToken;
+import java.lang.reflect.Type;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.ExecutionException;
+import javax.validation.Valid;
 import org.openbaton.catalogue.mano.descriptor.NetworkServiceDescriptor;
 import org.openbaton.catalogue.mano.descriptor.VNFComponent;
 import org.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
@@ -36,9 +39,9 @@ import org.openbaton.catalogue.nfvo.VNFCDependencyParameters;
 import org.openbaton.catalogue.nfvo.messages.Interfaces.NFVMessage;
 import org.openbaton.exceptions.BadFormatException;
 import org.openbaton.exceptions.BadRequestException;
+import org.openbaton.exceptions.MissingParameterException;
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.exceptions.PluginException;
-import org.openbaton.exceptions.MissingParameterException;
 import org.openbaton.exceptions.QuotaExceededException;
 import org.openbaton.exceptions.VimDriverException;
 import org.openbaton.exceptions.VimException;
@@ -60,13 +63,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.lang.reflect.Type;
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.concurrent.ExecutionException;
-
-import javax.validation.Valid;
-
 @RestController
 @RequestMapping("/api/v1/ns-records")
 public class RestNetworkServiceRecord {
@@ -82,7 +78,7 @@ public class RestNetworkServiceRecord {
    *
    * @param networkServiceDescriptor : the Network Service Descriptor to be created
    * @return NetworkServiceRecord: the Network Service Descriptor filled with id and values from
-   * core
+   *     core
    */
   @RequestMapping(
     method = RequestMethod.POST,
@@ -108,16 +104,17 @@ public class RestNetworkServiceRecord {
   }
 
   /**
-   * @param id
-   * @param projectId
+   * @param id of the NSR
+   * @param projectId if of the project
    * @param jsonObject the body json is: { "vduVimInstances":{ "vduName1":["viminstancename"],
-   * "vduName2":["viminstancename2"] }, "keys":["keyname1", "keyname2"], "configurations":{
-   * "vnfrName1":{"name":"conf1", "configurationParameters":[{"confKey":"key1", "value":"value1",
-   * "description":"description1"}, {"confKey":"key2", "value":"value2",
-   * "description":"description2"}]}, "vnfrName2":{"name":"conf2",
-   * "configurationParameters":[{"confKey":"key1", "value":"value1", "description":"description1"},
-   * {"confKey":"key2", "value":"value2", "description":"description2"}]} } }
-   * @return
+   *     "vduName2":["viminstancename2"] }, "keys":["keyname1", "keyname2"], "configurations":{
+   *     "vnfrName1":{"name":"conf1", "configurationParameters":[{"confKey":"key1",
+   *     "value":"value1", "description":"description1"}, {"confKey":"key2", "value":"value2",
+   *     "description":"description2"}]}, "vnfrName2":{"name":"conf2",
+   *     "configurationParameters":[{"confKey":"key1", "value":"value1",
+   *     "description":"description1"}, {"confKey":"key2", "value":"value2",
+   *     "description":"description2"}]} } }
+   * @return the created NSR
    * @throws InterruptedException
    * @throws ExecutionException
    * @throws VimException
@@ -144,9 +141,7 @@ public class RestNetworkServiceRecord {
 
     log.debug("Json Body is" + jsonObject);
     Type mapType = new TypeToken<Map<String, Configuration>>() {}.getType();
-    /**
-     * Modified to work with the api-doc branch.
-     */
+    /** Modified to work with the api-doc branch. */
     //    return networkServiceRecordManagement.onboard(
     //        id,
     //        projectId,
@@ -266,7 +261,7 @@ public class RestNetworkServiceRecord {
    *
    * @param id of NSD
    * @return Set<VirtualNetworkFunctionDescriptor>: List of VirtualNetworkFunctionDescriptor into
-   * NSD
+   *     NSD
    */
   @RequestMapping(
     value = "{id}/vnfrecords",
@@ -307,8 +302,8 @@ public class RestNetworkServiceRecord {
   /**
    * Removes the VirtualNetworkFunctionRecord with idVnf into NSR with idNsr
    *
-   * @param idNsr
-   * @param idVnf
+   * @param idNsr id of the NSR
+   * @param idVnf id of the VNF
    * @throws NotFoundException
    */
   @RequestMapping(value = "{idNsr}/vnfrecords/{idVnf}", method = RequestMethod.DELETE)

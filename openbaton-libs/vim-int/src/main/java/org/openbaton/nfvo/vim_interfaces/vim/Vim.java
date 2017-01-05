@@ -17,6 +17,8 @@
 
 package org.openbaton.nfvo.vim_interfaces.vim;
 
+import java.io.IOException;
+import java.util.concurrent.TimeoutException;
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.exceptions.PluginException;
 import org.openbaton.nfvo.vim_interfaces.flavor_management.DeploymentFlavorManagement;
@@ -28,18 +30,15 @@ import org.openbaton.vim.drivers.VimDriverCaller;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.util.concurrent.TimeoutException;
-
-/**
- * Created by mpa on 12.06.15.
- */
+/** Created by mpa on 12.06.15. */
 @Service
 @Scope("prototype")
+@ConfigurationProperties
 public abstract class Vim
     implements ImageManagement, ResourceManagement, NetworkManagement, DeploymentFlavorManagement {
   protected Logger log = LoggerFactory.getLogger(this.getClass());
@@ -68,7 +67,6 @@ public abstract class Vim
           client = new VimDriverCaller(brokerIp, "admin", "openbaton", port, type, managementPort);
         }
       }
-
     } catch (TimeoutException | NotFoundException | IOException e) {
       throw new PluginException("Error instantiating plugin: " + e.getMessage(), e);
     }

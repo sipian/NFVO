@@ -17,6 +17,8 @@
 
 package org.openbaton.vim_impl.vim;
 
+import java.util.*;
+import java.util.concurrent.Future;
 import org.openbaton.catalogue.mano.descriptor.VNFComponent;
 import org.openbaton.catalogue.mano.descriptor.VNFDConnectionPoint;
 import org.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
@@ -33,23 +35,19 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
-import java.util.concurrent.Future;
-
-/**
- * Created by lto on 12/05/15.
- */
+/** Created by lto on 12/05/15. */
 @Service
 @Scope("prototype")
 public class OpenstackVIM extends GenericVIM {
 
-  public OpenstackVIM(String name, int port, String managementPort, ApplicationContext context)
+  public OpenstackVIM(
+      String name, int port, String managementPort, ApplicationContext context, String brokerIp)
       throws PluginException {
-    super("openstack", name, port, managementPort, context);
+    super("openstack." + name, brokerIp, port, managementPort, context);
   }
 
   public OpenstackVIM(String managementPort, ApplicationContext context) throws PluginException {
-    super("openstack", managementPort, context);
+    super("openstack", "", managementPort, context);
   }
 
   public OpenstackVIM(int port, String managementPort, ApplicationContext context)
@@ -355,9 +353,7 @@ public class OpenstackVIM extends GenericVIM {
     log.debug("VDU is : " + vdu.toString());
     log.debug("VNFR is : " + vnfr.toString());
     log.debug("VNFC is : " + vnfComponent.toString());
-    /**
-     * *) choose image *) ...?
-     */
+    /** *) choose image *) ...? */
     String image = this.chooseImage(vdu.getVm_image(), vimInstance);
 
     log.debug("Finding Networks...");
@@ -368,12 +364,17 @@ public class OpenstackVIM extends GenericVIM {
           networks.add(net.getExtId());
     }
     log.debug("Found Networks with ExtIds: " + networks);
-
-    String flavorExtId = getFlavorExtID(vnfr.getDeployment_flavour_key(), vimInstance);
+    String flavorKey = null;
+    if (vdu.getComputation_requirement() != null && !vdu.getComputation_requirement().isEmpty()) {
+      flavorKey = vdu.getComputation_requirement();
+    } else {
+      flavorKey = vnfr.getDeployment_flavour_key();
+    }
+    String flavorExtId = getFlavorExtID(flavorKey, vimInstance);
 
     log.debug("Generating Hostname...");
     vdu.setHostname(vnfr.getName());
-    String hostname = vdu.getHostname() + "-" + ((int) (Math.random() * 1000));
+    String hostname = vdu.getHostname() + "-" + ((int) (Math.random() * 10000000));
     log.debug("Generated Hostname: " + hostname);
 
     userdata = userdata.replace("#Hostname=", "Hostname=" + hostname);
@@ -404,7 +405,8 @@ public class OpenstackVIM extends GenericVIM {
         log.debug("vimInstance.getKeyPair() is null");
         vimInstance.setKeyPair("");
       }
-      if (networks == null) throw new NullPointerException("networks is null");
+      if (networks == null || networks.isEmpty())
+        throw new NullPointerException("networks is null");
       if (vimInstance.getSecurityGroups() == null)
         throw new NullPointerException("vimInstance.getSecurityGroups() is null");
 

@@ -1,24 +1,27 @@
 /*
- * Copyright (c) 2016 Open Baton (http://www.openbaton.org)
+ * Copyright (c) 2016 Open Baton (http://openbaton.org)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
  */
 
-package org.openbaton.nfvo.api;
+package org.openbaton.nfvo.api.catalogue;
 
 import com.google.gson.JsonObject;
-
+import java.io.IOException;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import javax.validation.Valid;
 import org.openbaton.catalogue.mano.common.Security;
 import org.openbaton.catalogue.mano.descriptor.NetworkServiceDescriptor;
 import org.openbaton.catalogue.mano.descriptor.PhysicalNetworkFunctionDescriptor;
@@ -48,12 +51,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import java.io.IOException;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
-
-import javax.validation.Valid;
 
 @RestController
 @RequestMapping("/api/v1/ns-descriptors")
@@ -69,7 +66,7 @@ public class RestNetworkServiceDescriptor {
    *
    * @param networkServiceDescriptor : the Network Service Descriptor to be created
    * @return networkServiceDescriptor: the Network Service Descriptor filled with id and values from
-   * core
+   *     core
    */
   @RequestMapping(
     method = RequestMethod.POST,
@@ -81,7 +78,7 @@ public class RestNetworkServiceDescriptor {
       @RequestBody @Valid NetworkServiceDescriptor networkServiceDescriptor,
       @RequestHeader(value = "project-id") String projectId)
       throws NotFoundException, BadFormatException, NetworkServiceIntegrityException,
-          CyclicDependenciesException {
+          CyclicDependenciesException, EntityInUseException {
     NetworkServiceDescriptor nsd;
     log.trace("Just Received: " + networkServiceDescriptor);
     nsd = networkServiceDescriptorManagement.onboard(networkServiceDescriptor, projectId);
@@ -93,7 +90,7 @@ public class RestNetworkServiceDescriptor {
    *
    * @param link : link to the Network Service Descriptor to be created
    * @return networkServiceDescriptor: the Network Service Descriptor filled with id and values from
-   * core
+   *     core
    */
   @RequestMapping(
     value = "/marketdownload",
@@ -105,7 +102,7 @@ public class RestNetworkServiceDescriptor {
       @RequestBody JsonObject link, @RequestHeader(value = "project-id") String projectId)
       throws BadFormatException, CyclicDependenciesException, NetworkServiceIntegrityException,
           NotFoundException, IOException, PluginException, VimException, IncompatibleVNFPackage,
-          AlreadyExistingException {
+          AlreadyExistingException, EntityInUseException {
 
     log.debug("LINK: " + link);
     String downloadlink = link.get("link").getAsString();
@@ -197,7 +194,7 @@ public class RestNetworkServiceDescriptor {
    *
    * @param id : The id of NSD
    * @return List<VirtualNetworkFunctionDescriptor>: The List of VirtualNetworkFunctionDescriptor
-   * into NSD @
+   *     into NSD @
    */
   @RequestMapping(
     value = "{id}/vnfdescriptors",
@@ -343,7 +340,7 @@ public class RestNetworkServiceDescriptor {
    *
    * @param id : The id of NSD
    * @return List<PhysicalNetworkFunctionDescriptor>: The List of PhysicalNetworkFunctionDescriptor
-   * into NSD @
+   *     into NSD @
    */
   @RequestMapping(
     value = "{id}/pnfdescriptors",

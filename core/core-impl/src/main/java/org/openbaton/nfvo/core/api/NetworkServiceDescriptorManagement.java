@@ -18,29 +18,21 @@
 package org.openbaton.nfvo.core.api;
 
 import com.google.gson.Gson;
-
-import org.apache.commons.validator.routines.UrlValidator;
-import org.openbaton.catalogue.mano.common.LifecycleEvent;
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
+import javax.persistence.NoResultException;
 import org.openbaton.catalogue.mano.common.Security;
-import org.openbaton.catalogue.mano.descriptor.NetworkServiceDescriptor;
-import org.openbaton.catalogue.mano.descriptor.PhysicalNetworkFunctionDescriptor;
-import org.openbaton.catalogue.mano.descriptor.VNFDependency;
-import org.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
-import org.openbaton.catalogue.mano.descriptor.VirtualNetworkFunctionDescriptor;
+import org.openbaton.catalogue.mano.descriptor.*;
 import org.openbaton.catalogue.mano.record.NetworkServiceRecord;
 import org.openbaton.catalogue.mano.record.Status;
 import org.openbaton.catalogue.nfvo.VNFPackage;
 import org.openbaton.catalogue.nfvo.VnfmManagerEndpoint;
-import org.openbaton.exceptions.AlreadyExistingException;
-import org.openbaton.exceptions.BadFormatException;
-import org.openbaton.exceptions.CyclicDependenciesException;
-import org.openbaton.exceptions.EntityInUseException;
-import org.openbaton.exceptions.IncompatibleVNFPackage;
-import org.openbaton.exceptions.NetworkServiceIntegrityException;
-import org.openbaton.exceptions.NotFoundException;
-import org.openbaton.exceptions.PluginException;
-import org.openbaton.exceptions.VimException;
-import org.openbaton.exceptions.WrongStatusException;
+import org.openbaton.exceptions.*;
 import org.openbaton.nfvo.core.utils.NSDUtils;
 import org.openbaton.nfvo.repositories.NetworkServiceDescriptorRepository;
 import org.openbaton.nfvo.repositories.NetworkServiceRecordRepository;
@@ -58,26 +50,14 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.security.oauth2.common.exceptions.UnauthorizedUserException;
 import org.springframework.stereotype.Service;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.persistence.NoResultException;
-
-/**
- * Created by lto on 11/05/15.
- */
+/** Created by lto on 11/05/15. */
 @Service
 @Scope
 @ConfigurationProperties
 public class NetworkServiceDescriptorManagement
     implements org.openbaton.nfvo.core.interfaces.NetworkServiceDescriptorManagement {
 
-  private Logger log = LoggerFactory.getLogger(this.getClass());
+  private final Logger log = LoggerFactory.getLogger(this.getClass());
 
   @Value("${nfvo.vnfd.cascade.delete:false}")
   private boolean cascadeDelete;
@@ -116,39 +96,19 @@ public class NetworkServiceDescriptorManagement
   public NetworkServiceDescriptor onboard(
       NetworkServiceDescriptor networkServiceDescriptor, String projectId)
       throws NotFoundException, BadFormatException, NetworkServiceIntegrityException,
-          CyclicDependenciesException {
+          CyclicDependenciesException, EntityInUseException {
     networkServiceDescriptor.setProjectId(projectId);
     log.info("Staring onboarding process for NSD: " + networkServiceDescriptor.getName());
-    UrlValidator urlValidator = new UrlValidator();
 
     nsdUtils.fetchExistingVnfd(networkServiceDescriptor);
+    if (networkServiceDescriptor.getVnfd().size() == 0)
+      throw new NotFoundException("You should specify at least one VNFD in the NSD!");
 
-    for (VirtualNetworkFunctionDescriptor vnfd : networkServiceDescriptor.getVnfd()) {
-      vnfd.setProjectId(projectId);
-      for (VirtualDeploymentUnit virtualDeploymentUnit : vnfd.getVdu()) {
-        virtualDeploymentUnit.setProjectId(projectId);
+    if (networkServiceDescriptor.getVld() != null) {
+      for (VirtualLinkDescriptor vld : networkServiceDescriptor.getVld()) {
+        if (vld.getName() == null || vld.getName().equals(""))
+          throw new NotFoundException("A VLD in the NSD has no name specified!");
       }
-      if (vnfd.getLifecycle_event() != null)
-        for (LifecycleEvent event : vnfd.getLifecycle_event()) {
-          if (event == null) {
-            throw new NotFoundException("LifecycleEvent is null");
-          } else if (event.getEvent() == null) {
-            throw new NotFoundException("Event in one LifecycleEvent does not exist");
-          }
-        }
-      if (vnfd.getEndpoint() == null) vnfd.setEndpoint(vnfd.getType());
-      if (vnfd.getVnfPackageLocation() != null) {
-        if (urlValidator.isValid(vnfd.getVnfPackageLocation())) { // this is a script link
-          VNFPackage vnfPackage = new VNFPackage();
-          vnfPackage.setScriptsLink(vnfd.getVnfPackageLocation());
-          vnfPackage.setName(vnfd.getName());
-          vnfPackage.setProjectId(projectId);
-          vnfPackage = vnfPackageRepository.save(vnfPackage);
-          vnfd.setVnfPackageLocation(vnfPackage.getId());
-        } else { // this is an id pointing to a package already existing
-          // nothing to do here i think...
-        }
-      } else log.warn("vnfPackageLocation is null. Are you sure?");
     }
 
     log.info("Checking if Vnfm is running...");
@@ -158,9 +118,13 @@ public class NetworkServiceDescriptorManagement
     nsdUtils.checkEndpoint(networkServiceDescriptor, endpoints);
 
     log.trace("Creating " + networkServiceDescriptor);
-    log.trace("Fetching Data");
-    nsdUtils.fetchVimInstances(networkServiceDescriptor, projectId);
-    log.trace("Fetched Data");
+    //    log.trace("Fetching Data");
+    //    nsdUtils.fetchVimInstances(networkServiceDescriptor, projectId);
+    //    log.trace("Fetched Data");
+
+    for (VirtualNetworkFunctionDescriptor vnfd : networkServiceDescriptor.getVnfd()) {
+      vnfd.setProjectId(projectId);
+    }
 
     log.debug("Checking integrity of NetworkServiceDescriptor");
     nsdUtils.checkIntegrity(networkServiceDescriptor);
@@ -170,7 +134,12 @@ public class NetworkServiceDescriptorManagement
     log.trace("Persisted VNFDependencies");
 
     networkServiceDescriptor.setProjectId(projectId);
-    networkServiceDescriptor = nsdRepository.save(networkServiceDescriptor);
+    try {
+      networkServiceDescriptor = nsdRepository.save(networkServiceDescriptor);
+    } catch (Exception e) {
+      throw new org.openbaton.exceptions.EntityInUseException(
+          "One of the VNF chosen is already in use by another NS");
+    }
     log.info("Created NetworkServiceDescriptor with id " + networkServiceDescriptor.getId());
     return networkServiceDescriptor;
   }
@@ -179,7 +148,7 @@ public class NetworkServiceDescriptorManagement
   public NetworkServiceDescriptor onboardFromMarketplace(String link, String projectId)
       throws BadFormatException, CyclicDependenciesException, NetworkServiceIntegrityException,
           NotFoundException, IOException, PluginException, VimException, IncompatibleVNFPackage,
-          AlreadyExistingException {
+          AlreadyExistingException, EntityInUseException {
 
     InputStream in = new BufferedInputStream(new URL(link).openStream());
 
@@ -212,14 +181,12 @@ public class NetworkServiceDescriptorManagement
   }
 
   private List<String> getIds(List<String> market_ids, String project_id)
-      throws BadFormatException, CyclicDependenciesException, NetworkServiceIntegrityException,
-          NotFoundException, IOException, PluginException, VimException, IncompatibleVNFPackage,
-          AlreadyExistingException {
+      throws NotFoundException, IOException, PluginException, VimException, IncompatibleVNFPackage,
+          AlreadyExistingException, NetworkServiceIntegrityException {
     List<String> not_found_ids = new ArrayList<>();
     List<String> vnfdIds = new ArrayList<>();
 
     for (String id : market_ids) {
-      boolean found = false;
       for (VNFPackage vnfPackage : vnfPackageRepository.findByProjectId(project_id)) {
         String localId = "";
         String vnfdId = "";
@@ -235,7 +202,6 @@ public class NetworkServiceDescriptorManagement
               "There is already a VNFD onboarded with id: " + localId);
         }
       }
-      if (!found) not_found_ids.add(id);
     }
     log.debug("VNFDs found on the catalogue: " + vnfdIds);
 
@@ -284,7 +250,6 @@ public class NetworkServiceDescriptorManagement
    * and VLD.This update might include creating/deleting new VNFFGDs and/or new VLDs.
    *
    * @param newNsd : the new values to be updated
-   * @param projectId
    */
   @Override
   public NetworkServiceDescriptor update(NetworkServiceDescriptor newNsd, String projectId) {
@@ -299,7 +264,6 @@ public class NetworkServiceDescriptorManagement
    *
    * @param vnfd VirtualNetworkFunctionDescriptor to be persisted
    * @param id of NetworkServiceDescriptor
-   * @param projectId
    * @return the persisted VirtualNetworkFunctionDescriptor
    */
   public VirtualNetworkFunctionDescriptor addVnfd(
@@ -335,14 +299,10 @@ public class NetworkServiceDescriptorManagement
   }
 
   /**
-   *
    * Returns the VirtualNetworkFunctionDescriptor selected by idVnfd into NSD with idNsd
    *
    * @param idNsd of NSD
    * @param idVnfd of VirtualNetworkFunctionDescriptor
-   * @param projectId
-   * @return
-   * @throws NotFoundException
    */
   @Override
   public VirtualNetworkFunctionDescriptor getVirtualNetworkFunctionDescriptor(
@@ -365,10 +325,6 @@ public class NetworkServiceDescriptorManagement
   /**
    * Updates the VNFDescriptor into NSD with idNsd
    *
-   * @param idNsd
-   * @param idVfn
-   * @param vnfDescriptor
-   * @param projectId
    * @return VirtualNetworkFunctionDescriptor
    */
   @Override
@@ -388,9 +344,6 @@ public class NetworkServiceDescriptorManagement
   /**
    * Returns the VNFDependency selected by idVnfd into NSD with idNsd
    *
-   * @param idNsd
-   * @param idVnfd
-   * @param projectId
    * @return VNFDependency
    */
   @Override
@@ -406,7 +359,6 @@ public class NetworkServiceDescriptorManagement
    *
    * @param idNsd of NSD
    * @param idVnfd of VNFD
-   * @param projectId
    */
   @Override
   public void deleteVNFDependency(String idNsd, String idVnfd, String projectId) {
@@ -422,9 +374,6 @@ public class NetworkServiceDescriptorManagement
   /**
    * Save or Update the VNFDependency into NSD with idNsd
    *
-   * @param idNsd
-   * @param vnfDependency
-   * @param projectId
    * @return VNFDependency
    */
   @Override
@@ -443,7 +392,6 @@ public class NetworkServiceDescriptorManagement
    *
    * @param idNsd of NSD
    * @param idPnf of PhysicalNetworkFunctionDescriptor
-   * @param projectId
    */
   @Override
   public void deletePhysicalNetworkFunctionDescriptor(
@@ -457,9 +405,6 @@ public class NetworkServiceDescriptorManagement
   /**
    * Returns the PhysicalNetworkFunctionDescriptor with idPnf into NSD with idNsd
    *
-   * @param idNsd
-   * @param idPnf
-   * @param projectId
    * @return PhysicalNetworkFunctionDescriptor selected
    */
   @Override
@@ -480,9 +425,6 @@ public class NetworkServiceDescriptorManagement
   /**
    * Add or Update the PhysicalNetworkFunctionDescriptor into NSD
    *
-   * @param pDescriptor
-   * @param idNsd
-   * @param projectId
    * @return PhysicalNetworkFunctionDescriptor
    */
   @Override
@@ -498,9 +440,6 @@ public class NetworkServiceDescriptorManagement
   /**
    * Adds or Updates the Security into NSD
    *
-   * @param id
-   * @param security
-   * @param projectId
    * @return Security
    */
   @Override
@@ -512,13 +451,7 @@ public class NetworkServiceDescriptorManagement
         "NSD not under the project chosen, are you trying to hack us? Just kidding, it's a bug :)");
   }
 
-  /**
-   * Removes the Secuty with idS from NSD with id
-   *
-   * @param idNsd
-   * @param idS
-   * @param projectId
-   */
+  /** Removes the Security with idS from NSD with id */
   @Override
   public void deleteSecurty(String idNsd, String idS, String projectId) {
     if (nsdRepository.findFirstById(idNsd).getProjectId().equals(projectId)) {
@@ -554,11 +487,7 @@ public class NetworkServiceDescriptorManagement
         "NSD not under the project chosen, are you trying to hack us? Just kidding, it's a bug :)");
   }
 
-  /**
-   * This operation is used to remove a disabled Network Service Descriptor.
-   *
-   * @param id
-   */
+  /** This operation is used to remove a disabled Network Service Descriptor. */
   @Override
   public void delete(String id, String projectId)
       throws WrongStatusException, EntityInUseException {

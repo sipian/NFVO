@@ -17,6 +17,22 @@
 
 package org.openbaton.nfvo.core.test;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyMap;
+import static org.mockito.Matchers.anySet;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.when;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import javax.jms.JMSException;
+import javax.naming.NamingException;
+import javax.persistence.NoResultException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -54,13 +70,14 @@ import org.openbaton.catalogue.nfvo.ConfigurationParameter;
 import org.openbaton.catalogue.nfvo.NFVImage;
 import org.openbaton.catalogue.nfvo.Network;
 import org.openbaton.catalogue.nfvo.Quota;
+import org.openbaton.catalogue.nfvo.VNFPackage;
 import org.openbaton.catalogue.nfvo.VimInstance;
 import org.openbaton.catalogue.nfvo.VnfmManagerEndpoint;
 import org.openbaton.exceptions.BadFormatException;
 import org.openbaton.exceptions.BadRequestException;
+import org.openbaton.exceptions.MissingParameterException;
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.exceptions.PluginException;
-import org.openbaton.exceptions.MissingParameterException;
 import org.openbaton.exceptions.QuotaExceededException;
 import org.openbaton.exceptions.VimDriverException;
 import org.openbaton.exceptions.VimException;
@@ -75,6 +92,7 @@ import org.openbaton.nfvo.repositories.ConfigurationRepository;
 import org.openbaton.nfvo.repositories.NetworkServiceDescriptorRepository;
 import org.openbaton.nfvo.repositories.NetworkServiceRecordRepository;
 import org.openbaton.nfvo.repositories.VimRepository;
+import org.openbaton.nfvo.repositories.VnfPackageRepository;
 import org.openbaton.nfvo.repositories.VnfmEndpointRepository;
 import org.openbaton.nfvo.vim_interfaces.vim.Vim;
 import org.openbaton.nfvo.vim_interfaces.vim.VimBroker;
@@ -85,27 +103,7 @@ import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
-
-import javax.jms.JMSException;
-import javax.naming.NamingException;
-import javax.persistence.NoResultException;
-
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyMap;
-import static org.mockito.Matchers.anySet;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.when;
-
-/**
- * Created by lto on 20/04/15.
- */
+/** Created by lto on 20/04/15. */
 @RunWith(SpringJUnit4ClassRunner.class)
 @org.springframework.context.annotation.Configuration
 @ContextConfiguration(classes = NetworkServiceRecordManagementClassSuiteTest.class)
@@ -114,11 +112,12 @@ public class NetworkServiceRecordManagementClassSuiteTest {
   private static final String projectId = "project-id";
 
   @Mock private ConfigurationManagement configurationManagement;
+  @Mock private VnfPackageRepository vnfPackageRepository;
   @InjectMocks private NetworkServiceRecordManagement nsrManagement;
 
   @Rule public ExpectedException exception = ExpectedException.none();
 
-  private Logger log = LoggerFactory.getLogger(ApplicationTest.class);
+  private final Logger log = LoggerFactory.getLogger(ApplicationTest.class);
 
   @Mock private VimBroker vimBroker;
   @Mock private VimRepository vimRepository;
@@ -141,34 +140,31 @@ public class NetworkServiceRecordManagementClassSuiteTest {
     VimInstance vimInstance = createVimInstance();
     VirtualNetworkFunctionDescriptor virtualNetworkFunctionRecord =
         createVirtualNetworkFunctionDescriptor();
-    when(
-            resourceManagement.allocate(
-                any(VirtualDeploymentUnit.class),
-                any(VirtualNetworkFunctionRecord.class),
-                any(VimInstance.class),
-                anyString(),
-                anySet()))
+    when(resourceManagement.allocate(
+            any(VirtualDeploymentUnit.class),
+            any(VirtualNetworkFunctionRecord.class),
+            any(VimInstance.class),
+            anyString(),
+            anySet()))
         .thenReturn(new AsyncResult<List<String>>(new ArrayList<String>()));
     when(vimBroker.getVim(anyString())).thenReturn(vim);
     when(vimBroker.getLeftQuota(any(VimInstance.class))).thenReturn(createQuota());
     VNFCInstance vnfcInstance = new VNFCInstance();
-    when(
-            vim.allocate(
-                any(VimInstance.class),
-                any(VirtualDeploymentUnit.class),
-                any(VirtualNetworkFunctionRecord.class),
-                any(VNFComponent.class),
-                anyString(),
-                anyMap(),
-                anySet()))
+    when(vim.allocate(
+            any(VimInstance.class),
+            any(VirtualDeploymentUnit.class),
+            any(VirtualNetworkFunctionRecord.class),
+            any(VNFComponent.class),
+            anyString(),
+            anyMap(),
+            anySet()))
         .thenReturn(new AsyncResult<>(vnfcInstance));
     Map<String, VimInstance> res = new HashMap<>();
     for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
       res.put(vdu.getId(), vimInstance);
     }
-    when(
-            vnfLifecycleOperationGranting.grantLifecycleOperation(
-                any(VirtualNetworkFunctionRecord.class)))
+    when(vnfLifecycleOperationGranting.grantLifecycleOperation(
+            any(VirtualNetworkFunctionRecord.class)))
         .thenReturn(res);
 
     when(vnfmManagerEndpointRepository.findAll())
@@ -184,7 +180,16 @@ public class NetworkServiceRecordManagementClassSuiteTest {
               }
             });
 
+    when(vnfPackageRepository.findFirstById(anyString())).thenReturn(createVNFPackage());
     log.info("Starting test");
+  }
+
+  private VNFPackage createVNFPackage() {
+    VNFPackage vnfPackage = new VNFPackage();
+    ArrayList<String> vimTypes = new ArrayList<>();
+    vimTypes.add("test");
+    vnfPackage.setVimTypes(vimTypes);
+    return vnfPackage;
   }
 
   @Test
@@ -281,9 +286,7 @@ public class NetworkServiceRecordManagementClassSuiteTest {
       throws NotFoundException, InterruptedException, ExecutionException, NamingException,
           VimException, VimDriverException, JMSException, BadFormatException,
           QuotaExceededException, PluginException, MissingParameterException, BadRequestException {
-    /**
-     * Initial settings
-     */
+    /** Initial settings */
     NetworkServiceDescriptor networkServiceDescriptor = createNetworkServiceDescriptor();
 
     when(nsrRepository.save(any(NetworkServiceRecord.class)))
@@ -324,10 +327,14 @@ public class NetworkServiceRecordManagementClassSuiteTest {
                 add(vimInstance);
               }
             });
-
-    /**
-     * Real Method
-     */
+    when(vimRepository.findByProjectId(anyString()))
+        .thenReturn(
+            new ArrayList<VimInstance>() {
+              {
+                add(createVimInstance());
+              }
+            });
+    /** Real Method */
     nsrManagement.onboard(networkServiceDescriptor.getId(), projectId, null, null, null);
   }
 
@@ -336,9 +343,7 @@ public class NetworkServiceRecordManagementClassSuiteTest {
       throws NotFoundException, InterruptedException, ExecutionException, NamingException,
           VimException, VimDriverException, JMSException, BadFormatException,
           QuotaExceededException, PluginException, MissingParameterException, BadRequestException {
-    /**
-     * Initial settings
-     */
+    /** Initial settings */
     when(nsrRepository.save(any(NetworkServiceRecord.class)))
         .thenAnswer(
             new Answer<NetworkServiceRecord>() {
@@ -499,7 +504,7 @@ public class NetworkServiceRecordManagementClassSuiteTest {
             vimInstance.setName("vim_instance");
             vimInstance.setType("test");
             ArrayList<String> vimInstanceNames = new ArrayList<>();
-            vimInstanceNames.add("test");
+            vimInstanceNames.add("vim_instance");
             vdu.setVimInstanceName(vimInstanceNames);
             add(vdu);
           }

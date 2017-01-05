@@ -1,24 +1,28 @@
 /*
- * Copyright (c) 2016 Open Baton (http://www.openbaton.org)
+ * Copyright (c) 2016 Open Baton (http://openbaton.org)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
  */
 
-package org.openbaton.nfvo.api;
+package org.openbaton.nfvo.api.tosca;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import org.openbaton.catalogue.mano.descriptor.NetworkServiceDescriptor;
 import org.openbaton.catalogue.mano.descriptor.VirtualNetworkFunctionDescriptor;
 import org.openbaton.exceptions.*;
@@ -32,15 +36,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-
-/**
- * Created by rvl on 29.08.16.
- */
+/** Created by rvl on 29.08.16. */
 @RestController
 public class RestCSAR {
 
@@ -90,7 +86,8 @@ public class RestCSAR {
   )
   public String marketDownloadVNF(
       @RequestBody JsonObject link, @RequestHeader(value = "project-id") String projectId)
-      throws IOException, PluginException, VimException, NotFoundException, IncompatibleVNFPackage {
+      throws IOException, PluginException, VimException, NotFoundException, IncompatibleVNFPackage,
+          org.openbaton.tosca.exceptions.NotFoundException {
     Gson gson = new Gson();
     JsonObject jsonObject = gson.fromJson(link, JsonObject.class);
     String downloadlink = jsonObject.getAsJsonPrimitive("link").getAsString();
@@ -100,8 +97,8 @@ public class RestCSAR {
     InputStream in = new BufferedInputStream(packageLink.openStream());
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     byte[] bytes = new byte[1024];
-    int n = 0;
-    while (-1 != (n = in.read(bytes))) {
+    int n = in.read(bytes);
+    while (-1 != n) {
       out.write(bytes, 0, n);
     }
 
@@ -124,7 +121,8 @@ public class RestCSAR {
   public String marketDownloadNS(
       @RequestBody JsonObject link, @RequestHeader(value = "project-id") String projectId)
       throws IOException, PluginException, VimException, NotFoundException, IncompatibleVNFPackage,
-          NetworkServiceIntegrityException, BadFormatException, CyclicDependenciesException {
+          NetworkServiceIntegrityException, BadFormatException, CyclicDependenciesException,
+          EntityInUseException, org.openbaton.tosca.exceptions.NotFoundException {
     Gson gson = new Gson();
     JsonObject jsonObject = gson.fromJson(link, JsonObject.class);
     String downloadlink = jsonObject.getAsJsonPrimitive("link").getAsString();
@@ -134,14 +132,13 @@ public class RestCSAR {
     InputStream in = new BufferedInputStream(packageLink.openStream());
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     byte[] bytes = new byte[1024];
-    int n = 0;
+    int n;
     while (-1 != (n = in.read(bytes))) {
       out.write(bytes, 0, n);
     }
-
-    byte[] csarOnboard = out.toByteArray();
     out.close();
     in.close();
+    byte[] csarOnboard = out.toByteArray();
 
     log.debug(String.valueOf(csarOnboard.length));
 
