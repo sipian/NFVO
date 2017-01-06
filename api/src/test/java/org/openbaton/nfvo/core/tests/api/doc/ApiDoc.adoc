@@ -1,5 +1,5 @@
 = NFVO API
-v3.0.1
+v3.1.0
 :doctype: book
 :toc: left
 :sectanchors:
@@ -41,6 +41,38 @@ The answer from the orchestrator will look something like this: +
 The value field contains the token. In this case `b2816f07-28ad-4c28-8b03-bba9aeed0612`.
 
 
+[[resources-NFVOInformation]]
+== NFVO information
+
+=== Getting the NFVO version
+
+`GET` request +
+{host}/api/v1/main/version
+
+==== Example request
+
+include::{snippets}/main-version-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/main-version-example/http-response.adoc[]
+
+
+
+=== Getting a bash script for the Open Baton CLI
+
+This API call will return a bash script that can be executed and that will set all the required environment variables necessary to work with the Open Baton CLI +
+`GET` request +
+{host}/api/v1/main/openbaton-rc
+
+==== Example request
+
+include::{snippets}/main-openbaton-rc-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/main-openbaton-rc-example/http-response.adoc[]
+
 
 [[resources-NetworkServiceDescriptor]]
 == Network Service Descriptor
@@ -67,6 +99,25 @@ include::{snippets}/nsd-create-example/curl-request.adoc[]
 ==== Example response
 
 include::{snippets}/nsd-create-example/http-response.adoc[]
+
+
+
+=== Adding a Network Service Descriptor from the marketplace
+
+`PUT` request with the a JSON object in the request body containing a field named *link* +
+{host}/api/v1/ns-descriptors/marketdownload
+
+==== Request structure
+
+include::{snippets}/nsd-market-download-example/request-fields.adoc[]
+
+==== Example request
+
+include::{snippets}/nsd-market-download-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/nsd-market-download-example/http-response.adoc[]
 
 
 
@@ -727,6 +778,26 @@ To get information about how this archive has to look like please read the docum
 {host}/api/v1/vnf-packages?file=@{archive}
 
 
+
+=== Adding a VNFPackage from the Open Baton marketplace
+
+`POST` request with the a JSON object in the request body containing a field named *link* +
+{host}/api/v1/vnf-packages/marketdownload
+
+==== Request structure
+
+include::{snippets}/vnfpackage-market-download-example/request-fields.adoc[]
+
+==== Example Request
+
+include::{snippets}/vnfpackage-market-download-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/vnfpackage-market-download-example/http-response.adoc[]
+
+
+
 === Retrieving all VNFPackages
 
 `GET` request +
@@ -919,10 +990,10 @@ include::{snippets}/user-update-example/curl-request.adoc[]
 include::{snippets}/user-update-example/http-response.adoc[]
 
 
-=== Changing a User's password
+=== Changing the current User's password
 
 `PUT` request with the a JSON object in the request body containing the fields old_pwd and new_pwd +
-{host}/api/v1/users/{username}
+{host}/api/v1/users/changepwd
 
 ==== Request structure
 
@@ -935,6 +1006,25 @@ include::{snippets}/user-change-password-example/curl-request.adoc[]
 ==== Example response
 
 include::{snippets}/user-change-password-example/http-response.adoc[]
+
+
+=== Changing a User's password
+
+If you want to change another User's password, you have to be an admin +
+`PUT` request with the a JSON object in the request body containing the field new_pwd +
+{host}/api/v1/users/changepwd/{username}
+
+==== Request structure
+
+include::{snippets}/user-change-password-of-example/request-fields.adoc[]
+
+==== Example Request
+
+include::{snippets}/user-change-password-of-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/user-change-password-of-example/http-response.adoc[]
 
 
 === Removing a User
@@ -1054,6 +1144,22 @@ include::{snippets}/project-delete-example/http-response.adoc[]
 
 
 
+=== Removing multiple Projects
+
+`DELETE` request +
+the ids in the request body specify the Projects to delete +
+{host}/api/v1/projects/multipledelete
+
+==== Example request
+
+include::{snippets}/project-multiple-delete-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/project-multiple-delete-example/http-response.adoc[]
+
+
+
 
 
 
@@ -1138,6 +1244,90 @@ include::{snippets}/key-delete-example/curl-request.adoc[]
 ==== Example response
 
 include::{snippets}/key-delete-example/http-response.adoc[]
+
+
+=== Removing multiple Keys
+
+`DELETE` request +
+the ids in the request body specify the Keys to delete +
+{host}/api/v1/keys/multipledelete
+
+==== Example request
+
+include::{snippets}/key-multiple-delete-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/key-multiple-delete-example/http-response.adoc[]
+
+
+
+
+
+
+
+
+
+
+[[resources-VNFM]]
+== Virtual Network Function Manager (VNFM)
+
+=== Retrieving all registered VNFM endpoints
+
+`GET` request +
+{host}/api/v1/vnfmanagers
+
+==== response structure
+
+include::{snippets}/vnfm-get-all-example/response-fields.adoc[]
+
+==== Example request
+
+include::{snippets}/vnfm-get-all-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/vnfm-get-all-example/http-response.adoc[]
+
+
+=== Retrieving a registered VNFM's endpoint
+
+`GET` request +
+the id in the request is the id of the requested VNFM +
+{host}/api/v1/vnfmanagers/{vnfmId}
+
+==== Response structure
+
+include::{snippets}/vnfm-get-example/response-fields.adoc[]
+
+==== Example request
+
+include::{snippets}/vnfm-get-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/vnfm-get-example/http-response.adoc[]
+
+
+=== Deleting a registered VNFM from the NFVO
+
+`DELETE` request +
+the id in the request belongs to the VNFM that shall be deleted +
+{host}/api/v1/vnfmanagers/{vnfmId}
+
+==== Example request
+
+include::{snippets}/vnfm-delete-example/curl-request.adoc[]
+
+==== Example response
+
+include::{snippets}/vnfm-delete-example/http-response.adoc[]
+
+
+
+
+
+
 
 
 

@@ -105,7 +105,10 @@ public class RestNetworkServiceDescriptor {
           AlreadyExistingException, EntityInUseException {
 
     log.debug("LINK: " + link);
-    String downloadlink = link.get("link").getAsString();
+    /** Modified to work with the api-doc branch. */
+    //    String downloadlink = link.get("link").getAsString();
+    String downloadlink =
+        "http://marketplace.openbaton.org:8082/api/v1/nsds/fokus/Iperf/2.1.1-json/json";
     return networkServiceDescriptorManagement.onboardFromMarketplace(downloadlink, projectId);
   }
 

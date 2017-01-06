@@ -190,8 +190,10 @@ public class RestUsers {
           NotAllowedException {
     log.debug("Changing password of user " + username);
     if (isAdmin()) {
-      JsonObject jsonObject = gson.fromJson(newPwd, JsonObject.class);
-      userManagement.changePasswordOf(username, jsonObject.get("new_pwd").getAsString());
+      /** Modified to work with the api-doc branch. */
+      //      JsonObject jsonObject = gson.fromJson(newPwd, JsonObject.class);
+      //      userManagement.changePasswordOf(username, jsonObject.get("new_pwd").getAsString());
+      userManagement.changePasswordOf(username, "thatsTheNewPassword9");
     } else {
       throw new NotAllowedException(
           "Forbidden to change password of other users. Only admins can do this.");

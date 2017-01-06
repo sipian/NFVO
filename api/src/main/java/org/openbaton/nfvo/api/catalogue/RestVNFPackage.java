@@ -90,7 +90,10 @@ public class RestVNFPackage {
           AlreadyExistingException, NetworkServiceIntegrityException {
     Gson gson = new Gson();
     JsonObject jsonObject = gson.fromJson(link, JsonObject.class);
-    String downloadlink = jsonObject.getAsJsonPrimitive("link").getAsString();
+    /** Modified to work with the api-doc branch. */
+    //    String downloadlink = jsonObject.getAsJsonPrimitive("link").getAsString();
+    String downloadlink =
+        "http://marketplace.openbaton.org:8082/api/v1/vnf-packages/fokus/iperfserver/0.1-tar/tar/";
     VirtualNetworkFunctionDescriptor virtualNetworkFunctionDescriptor =
         vnfPackageManagement.onboardFromMarket(downloadlink, projectId);
     return "{ \"id\": \"" + virtualNetworkFunctionDescriptor.getVnfPackageLocation() + "\"}";

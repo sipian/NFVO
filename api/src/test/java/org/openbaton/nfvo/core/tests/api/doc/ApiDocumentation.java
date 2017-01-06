@@ -25,7 +25,6 @@ import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuild
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.yaml.snakeyaml.tokens.Token.ID.Key;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -51,11 +50,7 @@ import org.openbaton.catalogue.security.Role;
 import org.openbaton.catalogue.security.User;
 import org.openbaton.exceptions.BadFormatException;
 import org.openbaton.exceptions.QuotaExceededException;
-import org.openbaton.nfvo.api.*;
-import org.openbaton.nfvo.api.admin.RestKeys;
-import org.openbaton.nfvo.api.admin.RestProject;
-import org.openbaton.nfvo.api.admin.RestUsers;
-import org.openbaton.nfvo.api.admin.RestVimInstances;
+import org.openbaton.nfvo.api.admin.*;
 import org.openbaton.nfvo.api.catalogue.RestNetworkServiceDescriptor;
 import org.openbaton.nfvo.api.catalogue.RestVNFPackage;
 import org.openbaton.nfvo.api.catalogue.RestVirtualNetworkFunctionDescriptor;
@@ -109,9 +104,15 @@ public class ApiDocumentation {
 
   @InjectMocks private RestProject restProject;
 
+  @Mock private VNFManagerManagement vnfManagerManagement;
+
+  @InjectMocks private RestVNFManager restVnfManager;
+
   @Mock private KeyManagement keyManagement;
 
   @InjectMocks private RestKeys restKeys;
+
+  @InjectMocks private RestMain restMain;
 
   private Gson gson = new Gson();
 
@@ -194,6 +195,7 @@ public class ApiDocumentation {
   private VNFPackage vnfPackage1 = new VNFPackage();
   private VNFPackage vnfPackage1Return = new VNFPackage();
   private Set<VNFPackage> vnfPackageSet = new HashSet<VNFPackage>();
+  List<String> vimTypes = new LinkedList<>();
   private NFVImage image = new NFVImage();
   private Set<Script> scripts = new HashSet<Script>();
   private Script install = new Script();
@@ -250,6 +252,7 @@ public class ApiDocumentation {
   private User updateUser = new User();
   private Project createProject = new Project();
   private Project returnProject = new Project();
+  private Project returnProject2 = new Project();
   private Project returnUpdatedProject = new Project();
   private Project updateProject = new Project();
   private Role role1 = new Role();
@@ -261,7 +264,10 @@ public class ApiDocumentation {
   private Quota quota1 = new Quota();
   private Quota quota1Return = new Quota();
   private JsonObject changePwd = new JsonObject();
-  private List<String> idList = new LinkedList<>();
+  private JsonObject changePwdOf = new JsonObject();
+  private JsonObject marketNsdDownloadLink = new JsonObject();
+  private JsonObject marketPackageDownloadLink = new JsonObject();
+  private List<String> nsdIdList = new LinkedList<>();
   private ArrayList<String> keys = new ArrayList<>();
   private HashMap<String, ArrayList<String>> vduVimInstances = new HashMap<>();
   private HashMap<String, Configuration> vnfrConfigurations = new HashMap<>();
@@ -273,6 +279,9 @@ public class ApiDocumentation {
   Key key1return = new Key();
   Key key2 = new Key();
   Key key2return = new Key();
+  private List<String> projectIdList = new LinkedList<>();
+  private List<String> keyIdList = new LinkedList<>();
+  private VnfmManagerEndpoint returnVnfm = new VnfmManagerEndpoint();
 
   @Before
   public void setUp() {
@@ -292,7 +301,9 @@ public class ApiDocumentation {
                 restVNFPackage,
                 restUsers,
                 restProject,
-                restKeys)
+                restKeys,
+                restVnfManager,
+                restMain)
             .apply(documentationConfiguration(this.restDocumentation))
             .alwaysDo(this.document)
             .build();
@@ -654,12 +665,16 @@ public class ApiDocumentation {
     vnfPackage0.setImageLink("URL to the image file");
     vnfPackage0.setScriptsLink("URL to the place where the scripts can be downloaded");
     vnfPackage0.setImage(image);
+    vnfPackage0.setVimTypes(vimTypes);
+    vnfPackage0.setNfvo_version("3.1.0");
 
     vnfPackage1.setName("An updated VNFPackage");
     vnfPackage1.setVersion(2);
     vnfPackage1.setImageLink("URL to the image file");
     vnfPackage1.setScriptsLink("URL to the place where the scripts can be downloaded");
     vnfPackage1.setImage(image);
+    vnfPackage1.setNfvo_version("3.1.0");
+    vnfPackage1.setVimTypes(vimTypes);
 
     vnfPackage1Return.setName("An updated VNFPackage");
     vnfPackage1Return.setVersion(2);
@@ -668,6 +683,9 @@ public class ApiDocumentation {
     vnfPackage1Return.setScriptsLink("URL to the place where the scripts can be downloaded");
     vnfPackage1Return.setImage(nfvImageReturn);
     vnfPackage1Return.setProjectId("8a387f1e-9a42-43c7-bab0-3915719c6fca");
+    vnfPackage1Return.setNfvo_version("3.1.0");
+    vnfPackage1Return.setVimTypes(vimTypes);
+    vimTypes.add("vim-instance");
     instReturn.setId("5034fc1a-83ad-23f9-7403-533fed9812ad");
     instReturn.setVersion(0);
     instReturn.setEvent(Event.INSTANTIATE);
@@ -1030,14 +1048,35 @@ public class ApiDocumentation {
     updateProject.setName("MyUpdatedProject");
     updateProject.setDescription("The project description");
     updateProject.setQuota(quota1);
+    returnProject2.setName("MySecondProject");
+    returnProject2.setId("3a357f1e-a448-c4a5-f3b0-3c18248c6f92");
+    returnProject2.setQuota(quota1Return);
+    returnProject2.setDescription("The project description");
 
-    JsonPrimitive oldPwd = new JsonPrimitive("thatsTheOldPassword");
-    JsonPrimitive newPwd = new JsonPrimitive("thatsTheNewPassword");
+    JsonPrimitive oldPwd = new JsonPrimitive("thatsTheOldPassword9");
+    JsonPrimitive newPwd = new JsonPrimitive("thatsTheNewPassword9");
     changePwd.add("old_pwd", oldPwd);
     changePwd.add("new_pwd", newPwd);
 
-    idList.add("55555c52-f952-430c-b093-45acb2bbf50e");
-    idList.add("5c357f1e-9a42-c4a5-bab0-3916248c6fca");
+    changePwdOf.add("new_pwd", newPwd);
+
+    JsonPrimitive linkToNsd =
+        new JsonPrimitive(
+            "http://marketplace.openbaton.org:8082/api/v1/nsds/fokus/Iperf/2.1.1-json/json");
+    marketNsdDownloadLink.add("link", linkToNsd);
+    JsonPrimitive linkToPackage =
+        new JsonPrimitive(
+            "http://marketplace.openbaton.org:8082/api/v1/vnf-packages/fokus/iperfserver/0.1-tar/tar/");
+    marketPackageDownloadLink.add("link", linkToPackage);
+
+    nsdIdList.add("55555c52-f952-430c-b093-45acb2bbf50e");
+    nsdIdList.add("5c357f1e-9a42-c4a5-bab0-3916248c6fca");
+
+    projectIdList.add("3a357f1e-a448-c4a5-f3b0-3c18248c6f92");
+    projectIdList.add("5c357f1e-9a42-c4a5-bab0-3916248c6fca");
+
+    keyIdList.add("55555c52-f952-430c-b093-45acb2bbf50e");
+    keyIdList.add("5c357f1e-9a42-c4a5-bab0-3916248c6fca");
 
     keys.add("keypair1");
     keys.add("keypair2");
@@ -1086,6 +1125,16 @@ public class ApiDocumentation {
     key2return.setProjectId("8a387f1e-9a42-43c7-bab0-3915719c6fca");
     keySet.add(key1return);
     keySet.add(key2return);
+
+    returnVnfm.setActive(true);
+    returnVnfm.setDescription(
+        "The VNFM able to handle all the VNFs that follow specific conventions, see http://openbaton.github.io/");
+    returnVnfm.setEnabled(true);
+    returnVnfm.setEndpoint("generic-endpoint");
+    returnVnfm.setEndpointType(EndpointType.RABBIT);
+    returnVnfm.setId("03e77240-a327-418a-9a1f-2de0bc54400b");
+    returnVnfm.setType("generic");
+    returnVnfm.setVersion(0);
   }
 
   @Test
@@ -1119,6 +1168,34 @@ public class ApiDocumentation {
         .andDo(
             document(
                 "nsd-create-example",
+                preprocessRequest(prettyPrint()),
+                preprocessResponse(prettyPrint())));
+  }
+
+  @Test
+  public void nsdMarketDownloadExample() throws Exception, BadFormatException {
+    when(networkServiceDescriptorManagement.onboardFromMarketplace(
+            "http://marketplace.openbaton.org:8082/api/v1/nsds/fokus/Iperf/2.1.1-json/json",
+            "8a387f1e-9a42-43c7-bab0-3915719c6fca"))
+        .thenReturn(iperfNsd1Return);
+
+    this.mockMvc
+        .perform(
+            post("/api/v1/ns-descriptors/marketdownload")
+                .header("project-id", "8a387f1e-9a42-43c7-bab0-3915719c6fca")
+                .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e")
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(gson.toJson(marketNsdDownloadLink)))
+        .andExpect(status().isCreated())
+        .andDo(
+            document(
+                "nsd-market-download-example",
+                requestFields(
+                    fieldWithPath("link")
+                        .description("The link to the NSD in the Open Baton marketplace"))))
+        .andDo(
+            document(
+                "nsd-market-download-example",
                 preprocessRequest(prettyPrint()),
                 preprocessResponse(prettyPrint())));
   }
@@ -1262,7 +1339,7 @@ public class ApiDocumentation {
             delete("/api/v1/ns-descriptors/multipledelete")
                 .header("project-id", "8a387f1e-9a42-43c7-bab0-3915719c6fca")
                 .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e")
-                .content(gson.toJson(idList)))
+                .content(gson.toJson(nsdIdList)))
         .andExpect(status().isNoContent());
   }
 
@@ -1717,7 +1794,7 @@ public class ApiDocumentation {
             delete("/api/v1/vnf-descriptors/multipledelete")
                 .header("project-id", "8a387f1e-9a42-43c7-bab0-3915719c6fca")
                 .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e")
-                .content(gson.toJson(idList)))
+                .content(gson.toJson(nsdIdList)))
         .andExpect(status().isNoContent());
   }
 
@@ -1954,7 +2031,7 @@ public class ApiDocumentation {
             delete("/api/v1/ns-records/multipledelete")
                 .header("project-id", "8a387f1e-9a42-43c7-bab0-3915719c6fca")
                 .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e")
-                .content(gson.toJson(idList)))
+                .content(gson.toJson(nsdIdList)))
         .andExpect(status().isNoContent());
   }
 
@@ -2333,7 +2410,7 @@ public class ApiDocumentation {
             delete("/api/v1/keys/multipledelete")
                 .header("project-id", "8a387f1e-9a42-43c7-bab0-3915719c6fca")
                 .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e")
-                .content(gson.toJson(idList)))
+                .content(gson.toJson(keyIdList)))
         .andExpect(status().isNoContent());
   }
 
@@ -2499,6 +2576,34 @@ public class ApiDocumentation {
   }
 
   @Test
+  public void vnfPackageMarketDownloadExample() throws Exception {
+    when(vnfPackageManagement.onboardFromMarket(
+            "http://marketplace.openbaton.org:8082/api/v1/vnf-packages/fokus/iperfserver/0.1-tar/tar/",
+            "8a387f1e-9a42-43c7-bab0-3915719c6fca"))
+        .thenReturn(iperfVnfdServerReturn);
+
+    this.mockMvc
+        .perform(
+            post("/api/v1/vnf-packages/marketdownload")
+                .header("project-id", "8a387f1e-9a42-43c7-bab0-3915719c6fca")
+                .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e")
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(gson.toJson(marketPackageDownloadLink)))
+        .andExpect(status().isOk())
+        .andDo(
+            document(
+                "vnfpackage-market-download-example",
+                requestFields(
+                    fieldWithPath("link")
+                        .description("The link to the VNFPackage in the Open Baton marketplace"))))
+        .andDo(
+            document(
+                "vnfpackage-market-download-example",
+                preprocessRequest(prettyPrint()),
+                preprocessResponse(prettyPrint())));
+  }
+
+  @Test
   public void vnfpackageGetAllExample() throws Exception {
     when(vnfPackageManagement.queryByProjectId(eq("8a387f1e-9a42-43c7-bab0-3915719c6fca")))
         .thenReturn(vnfPackageSet);
@@ -2547,6 +2652,7 @@ public class ApiDocumentation {
                             "A link to an image that shall be used for instantiating the VMs"),
                     fieldWithPath("name").description("The name of the VNFPackage"),
                     fieldWithPath("nfvo_version")
+                        .type(JsonFieldType.STRING)
                         .description("The NFVO version that supports this VNFPackage"),
                     fieldWithPath("projectId")
                         .description("The id of the project to which this VNFPackage belongs"),
@@ -2559,6 +2665,7 @@ public class ApiDocumentation {
                             "A link to a git repository, from which the script files can be downloaded"),
                     fieldWithPath("version").description("The version of the VNFPackage"),
                     fieldWithPath("vimTypes")
+                        .type(JsonFieldType.ARRAY)
                         .description("The types of VIM Instances for this VNFPackage to use"))))
         .andDo(
             document(
@@ -2593,10 +2700,16 @@ public class ApiDocumentation {
                         .description(
                             "A link to an image that shall be used for instantiating the VMs"),
                     fieldWithPath("name").description("The name of the VNFPackage"),
+                    fieldWithPath("nfvo_version")
+                        .type(JsonFieldType.STRING)
+                        .description("The NFVO version that supports this VNFPackage"),
                     fieldWithPath("scriptsLink")
                         .description(
                             "A link to a git repository, from which the script files can be downloaded"),
-                    fieldWithPath("version").description("The version of the VNFPackage"))))
+                    fieldWithPath("version").description("The version of the VNFPackage"),
+                    fieldWithPath("vimTypes")
+                        .type(JsonFieldType.ARRAY)
+                        .description("The types of VIM Instances for this VNFPackage to use"))))
         .andDo(
             document(
                 "vnfpackage-update-example",
@@ -2633,7 +2746,7 @@ public class ApiDocumentation {
             delete("/api/v1/vnf-packages/multipledelete")
                 .header("project-id", "8a387f1e-9a42-43c7-bab0-3915719c6fca")
                 .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e")
-                .content(gson.toJson(idList)))
+                .content(gson.toJson(nsdIdList)))
         .andExpect(status().isNoContent());
   }
 
@@ -2799,7 +2912,7 @@ public class ApiDocumentation {
   public void userChangePasswordExample() throws Exception {
     Mockito.doNothing()
         .when(userManagement)
-        .changePassword("thatsTheOldPassword", "thatsTheNewPassword");
+        .changePassword("thatsTheOldPassword9", "thatsTheNewPassword9");
 
     this.mockMvc
         .perform(
@@ -2821,6 +2934,32 @@ public class ApiDocumentation {
         .andDo(
             document(
                 "user-change-password-example",
+                preprocessRequest(prettyPrint()),
+                preprocessResponse(prettyPrint())));
+  }
+
+  @Test
+  public void userChangePasswordOfExample() throws Exception {
+    when(userManagement.changePasswordOf("testusername", "thatsTheNewPassword9"))
+        .thenReturn(new User());
+
+    this.mockMvc
+        .perform(
+            put("/api/v1/users/changepwd/testusername")
+                .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e")
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(gson.toJson(changePwdOf)))
+        .andExpect(status().isAccepted())
+        .andDo(
+            document(
+                "user-change-password-of-example",
+                requestFields(
+                    fieldWithPath("new_pwd")
+                        .type(JsonFieldType.STRING)
+                        .description("The user's new password"))))
+        .andDo(
+            document(
+                "user-change-password-of-example",
                 preprocessRequest(prettyPrint()),
                 preprocessResponse(prettyPrint())));
   }
@@ -2860,6 +2999,21 @@ public class ApiDocumentation {
         .perform(
             delete("/api/v1/projects/61a40e7c-a424-4d47-8413-532217ddcf4f")
                 .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e"))
+        .andExpect(status().isNoContent());
+  }
+
+  @Test
+  public void projectMultipleDeleteExample() throws Exception {
+    Mockito.doNothing().when(projectManagement).delete(returnProject);
+
+    Mockito.doNothing().when(projectManagement).delete(returnProject2);
+
+    this.mockMvc
+        .perform(
+            delete("/api/v1/projects/multipledelete")
+                .header("project-id", "8a387f1e-9a42-43c7-bab0-3915719c6fca")
+                .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e")
+                .content(gson.toJson(projectIdList)))
         .andExpect(status().isNoContent());
   }
 
@@ -2937,6 +3091,112 @@ public class ApiDocumentation {
         .andDo(
             document(
                 "project-update-example",
+                preprocessRequest(prettyPrint()),
+                preprocessResponse(prettyPrint())));
+  }
+
+  @Test
+  public void vnfmGetAllExample() throws Exception {
+    when(vnfManagerManagement.query()).thenReturn(Arrays.asList(returnVnfm));
+
+    this.mockMvc
+        .perform(
+            get("/api/v1/vnfmanagers")
+                .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e"))
+        .andExpect(status().isOk())
+        .andDo(
+            document(
+                "vnfm-get-all-example",
+                responseFields(
+                    fieldWithPath("[]").description("The array containing the VNFM endpoints"))))
+        .andDo(
+            document(
+                "vnfm-get-all-example",
+                preprocessRequest(prettyPrint()),
+                preprocessResponse(prettyPrint())));
+  }
+
+  @Test
+  public void vnfmGetExample() throws Exception {
+    when(vnfManagerManagement.query("03e77240-a327-418a-9a1f-2de0bc54400b")).thenReturn(returnVnfm);
+
+    this.mockMvc
+        .perform(
+            get("/api/v1/vnfmanagers/03e77240-a327-418a-9a1f-2de0bc54400b")
+                .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e"))
+        .andExpect(status().isOk())
+        .andDo(
+            document(
+                "vnfm-get-example",
+                responseFields(
+                    fieldWithPath("active")
+                        .type(JsonFieldType.BOOLEAN)
+                        .description("Whether the VNFM is active or not"),
+                    fieldWithPath("description")
+                        .type(JsonFieldType.STRING)
+                        .description("The VNFM description"),
+                    fieldWithPath("enabled")
+                        .type(JsonFieldType.BOOLEAN)
+                        .description("Whether the VNFM is enabled or not"),
+                    fieldWithPath("endpoint")
+                        .type(JsonFieldType.STRING)
+                        .description("Works like the endpoint's name"),
+                    fieldWithPath("endpointType")
+                        .type(JsonFieldType.STRING)
+                        .description("The endpoint's type"),
+                    fieldWithPath("id").type(JsonFieldType.STRING).description("The endpoint's id"),
+                    fieldWithPath("type").type(JsonFieldType.STRING).description("The VNFM's type"),
+                    fieldWithPath("version")
+                        .type(JsonFieldType.NUMBER)
+                        .description("The endpoint's version"))))
+        .andDo(
+            document(
+                "vnfm-get-example",
+                preprocessRequest(prettyPrint()),
+                preprocessResponse(prettyPrint())));
+  }
+
+  @Test
+  public void vnfmDeleteExample() throws Exception {
+    Mockito.doNothing().when(vnfManagerManagement).delete(any(String.class));
+
+    this.mockMvc
+        .perform(
+            delete("/api/v1/vnfmanagers/03e77240-a327-418a-9a1f-2de0bc54400b")
+                .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e"))
+        .andExpect(status().isNoContent());
+  }
+
+  @Test
+  public void mainVersionExample() throws Exception {
+    this.mockMvc
+        .perform(
+            get("/api/v1/main/version")
+                .accept(MediaType.TEXT_PLAIN_VALUE)
+                .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e"))
+        .andExpect(status().isOk())
+        .andDo(document("main-version-example"))
+        .andDo(
+            document(
+                "main-version-example",
+                preprocessRequest(prettyPrint()),
+                preprocessResponse(prettyPrint())));
+  }
+
+  @Test
+  public void mainOpenbatonRcExample() throws Exception {
+    when(userManagement.getCurrentUser()).thenReturn(returnUser);
+    this.mockMvc
+        .perform(
+            get("/api/v1/main/openbaton-rc")
+                .accept(MediaType.APPLICATION_OCTET_STREAM_VALUE)
+                .header("Authorization", "Bearer e92dfd35-4a7e-4d33-9592-5f1ac595095e")
+                .header("project-id", "8a387f1e-9a42-43c7-bab0-3915719c6fca"))
+        .andExpect(status().isOk())
+        .andDo(document("main-openbaton-rc-example"))
+        .andDo(
+            document(
+                "main-openbaton-rc-example",
                 preprocessRequest(prettyPrint()),
                 preprocessResponse(prettyPrint())));
   }

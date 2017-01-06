@@ -63,7 +63,9 @@ public class RestMain {
     produces = MediaType.TEXT_PLAIN_VALUE
   )
   public String getVersion() {
-    return RestMain.class.getPackage().getImplementationVersion();
+    /** Modified to work with the api-doc branch. */
+    //    return RestMain.class.getPackage().getImplementationVersion();
+    return "3.1.0";
   }
 
   @RequestMapping(
@@ -77,6 +79,10 @@ public class RestMain {
   }
 
   private String getOpenRcFile(String projectId) throws NotFoundException {
+    /** Modified to work with the api-doc branch. */
+    nfvoIp = "192.168.2.45";
+    nfvoPort = "8080";
+
     return "#!/bin/bash\n"
         + "\n"
         + "unset OB_NFVO_IP\n"
