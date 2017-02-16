@@ -102,8 +102,30 @@ public class NSDUtils {
         throw new NotFoundException(
             "VNFManager with endpoint: "
                 + virtualNetworkFunctionDescriptor.getEndpoint()
-                + " is not registered or not enable or not active.");
+                + " is not registered, not enabled or not active.");
       }
+    }
+    if (!found) {
+      throw new NotFoundException("No VNFManagers were found");
+    }
+  }
+
+  public void checkEndpoint(String endpointName, Iterable<VnfmManagerEndpoint> endpoints)
+      throws NotFoundException {
+    boolean found = false;
+
+    for (VnfmManagerEndpoint endpoint : endpoints) {
+      log.debug("Check if VNFM is registered: " + endpoint.getType() + " == " + endpointName);
+      if (endpoint.getType().equals(endpointName) && endpoint.isActive() && endpoint.isEnabled()) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      throw new NotFoundException(
+          "VNFManager with endpoint: "
+              + endpointName
+              + " is not registered, not enabled or not active.");
     }
     if (!found) {
       throw new NotFoundException("No VNFManagers were found");

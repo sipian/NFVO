@@ -19,70 +19,24 @@ package org.openbaton.nfvo.vnfm_reg;
 
 import com.google.gson.Gson;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import javax.annotation.PostConstruct;
 import org.openbaton.catalogue.api.DeployNSRBody;
 import org.openbaton.catalogue.mano.common.VNFDeploymentFlavour;
-import org.openbaton.catalogue.mano.descriptor.NetworkServiceDescriptor;
-import org.openbaton.catalogue.mano.descriptor.VNFComponent;
-import org.openbaton.catalogue.mano.descriptor.VNFDependency;
-import org.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
-import org.openbaton.catalogue.mano.descriptor.VirtualNetworkFunctionDescriptor;
-import org.openbaton.catalogue.mano.record.NetworkServiceRecord;
-import org.openbaton.catalogue.mano.record.Status;
-import org.openbaton.catalogue.mano.record.VNFCInstance;
-import org.openbaton.catalogue.mano.record.VNFRecordDependency;
-import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
-import org.openbaton.catalogue.nfvo.Action;
-import org.openbaton.catalogue.nfvo.ApplicationEventNFVO;
-import org.openbaton.catalogue.nfvo.EndpointType;
-import org.openbaton.catalogue.nfvo.Script;
-import org.openbaton.catalogue.nfvo.VNFPackage;
-import org.openbaton.catalogue.nfvo.VimInstance;
-import org.openbaton.catalogue.nfvo.VnfmManagerEndpoint;
+import org.openbaton.catalogue.mano.descriptor.*;
+import org.openbaton.catalogue.mano.record.*;
+import org.openbaton.catalogue.nfvo.*;
+import org.openbaton.catalogue.nfvo.messages.*;
 import org.openbaton.catalogue.nfvo.messages.Interfaces.NFVMessage;
-import org.openbaton.catalogue.nfvo.messages.OrVnfmGenericMessage;
-import org.openbaton.catalogue.nfvo.messages.OrVnfmInstantiateMessage;
-import org.openbaton.catalogue.nfvo.messages.OrVnfmScalingMessage;
-import org.openbaton.catalogue.nfvo.messages.OrVnfmUpdateMessage;
-import org.openbaton.catalogue.nfvo.messages.VnfmOrAllocateResourcesMessage;
-import org.openbaton.catalogue.nfvo.messages.VnfmOrErrorMessage;
-import org.openbaton.catalogue.nfvo.messages.VnfmOrGenericMessage;
-import org.openbaton.catalogue.nfvo.messages.VnfmOrHealedMessage;
-import org.openbaton.catalogue.nfvo.messages.VnfmOrInstantiateMessage;
-import org.openbaton.catalogue.nfvo.messages.VnfmOrScaledMessage;
-import org.openbaton.catalogue.nfvo.messages.VnfmOrScalingMessage;
-import org.openbaton.catalogue.nfvo.messages.VnfmOrStartStopMessage;
 import org.openbaton.catalogue.security.Key;
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.nfvo.common.internal.model.EventFinishNFVO;
 import org.openbaton.nfvo.common.internal.model.EventNFVO;
-import org.openbaton.nfvo.repositories.NetworkServiceDescriptorRepository;
-import org.openbaton.nfvo.repositories.NetworkServiceRecordRepository;
-import org.openbaton.nfvo.repositories.VNFDRepository;
-import org.openbaton.nfvo.repositories.VNFRRepository;
-import org.openbaton.nfvo.repositories.VimRepository;
-import org.openbaton.nfvo.repositories.VnfPackageRepository;
-import org.openbaton.nfvo.vnfm_reg.tasks.AllocateresourcesTask;
-import org.openbaton.nfvo.vnfm_reg.tasks.ErrorTask;
-import org.openbaton.nfvo.vnfm_reg.tasks.HealTask;
-import org.openbaton.nfvo.vnfm_reg.tasks.ReleaseresourcesTask;
-import org.openbaton.nfvo.vnfm_reg.tasks.ScaledTask;
-import org.openbaton.nfvo.vnfm_reg.tasks.ScalingTask;
-import org.openbaton.nfvo.vnfm_reg.tasks.StartTask;
-import org.openbaton.nfvo.vnfm_reg.tasks.StopTask;
+import org.openbaton.nfvo.repositories.*;
+import org.openbaton.nfvo.vnfm_reg.tasks.*;
 import org.openbaton.nfvo.vnfm_reg.tasks.abstracts.AbstractTask;
 import org.openbaton.vnfm.interfaces.sender.VnfmSender;
 import org.slf4j.Logger;
@@ -278,7 +232,7 @@ public class VnfmManager
       log.debug(
           "Parameter ordered set to "
               + ordered
-              + ".Consider changing it directly into the openbaton.properties file");
+              + ". Consider changing it directly into the openbaton.properties file");
       if (ordered) {
         vnfrNames.put(networkServiceRecord.getId(), new HashMap<String, Integer>());
         Map<String, Integer> vnfrNamesWeighted = vnfrNames.get(networkServiceRecord.getId());
@@ -388,6 +342,141 @@ public class VnfmManager
         vnfmSender.sendCommand(message, endpoint);
         log.info("Sent " + message.getAction() + " to VNF: " + vnfd.getName());
       }
+      return new AsyncResult<>(null);
+    } catch (Exception e) {
+      log.error("", e);
+      throw e;
+    }
+  }
+
+  @Override
+  @Async
+  public Future<Void> addVnfr(
+      NetworkServiceRecord networkServiceRecord,
+      VirtualNetworkFunctionDescriptor virtualNetworkFunctionDescriptor,
+      DeployNSRBody body,
+      Map<String, List<String>> vduVimInstances)
+      throws NotFoundException {
+
+    try {
+
+      //TODO
+      //      log.debug(
+      //              "Parameter ordered set to "
+      //                      + ordered
+      //                      + ". Consider changing it directly into the openbaton.properties file");
+      //      if (ordered) {
+      //        vnfrNames.put(networkServiceRecord.getId(), new HashMap<String, Integer>());
+      //        Map<String, Integer> vnfrNamesWeighted = vnfrNames.get(networkServiceRecord.getId());
+      //        fillVnfrNames(networkServiceDescriptor, vnfrNamesWeighted);
+      //        vnfrNames.put(networkServiceRecord.getId(), sortByValue(vnfrNamesWeighted));
+      //
+      //        log.debug("VNFRs ordered by dependencies: " + vnfrNames.get(networkServiceRecord.getId()));
+      //      }
+
+      log.debug(
+          "Processing VNFD ("
+              + virtualNetworkFunctionDescriptor.getName()
+              + ") for NSR ("
+              + networkServiceRecord.getName()
+              + ")");
+      Map<String, Collection<VimInstance>> vimInstances = new HashMap<>();
+
+      for (VirtualDeploymentUnit vdu : virtualNetworkFunctionDescriptor.getVdu()) {
+        vimInstances.put(vdu.getId(), new ArrayList<VimInstance>());
+        List<String> vimInstanceNames = vduVimInstances.get(vdu.getId());
+        for (String vimInstanceName : vimInstanceNames) {
+          log.debug(
+              "deployment procedure for ("
+                  + virtualNetworkFunctionDescriptor.getName()
+                  + "). Looking for "
+                  + vimInstanceName);
+          VimInstance vimInstance = null;
+
+          for (VimInstance vi : vimInstanceRepository.findByProjectId(vdu.getProjectId())) {
+            if (vimInstanceName.equals(vi.getName())) {
+              vimInstance = vi;
+              break;
+            }
+          }
+
+          vimInstances.get(vdu.getId()).add(vimInstance);
+        }
+      }
+
+      //        for (Entry<String, Collection<VimInstance>> vimInstance : vimInstances.entrySet()) {
+      //
+      //          if (vimInstance.getValue().isEmpty()) {
+      //            for (VimInstance vimInstance1 :
+      //                vimInstanceRepository.findByProjectId(networkServiceDescriptor.getProjectId())) {
+      //              vimInstance.getValue().add(vimInstance1);
+      //            }
+      //          }
+      //          for (VimInstance vi : vimInstance.getValue()) {
+      //            log.debug("\t" + vi.getName());
+      //          }
+      //          log.debug("~~~~~~");
+      //        }
+
+      //Creating the extension
+      Map<String, String> extension = getExtension();
+
+      extension.put("nsr-id", networkServiceRecord.getId());
+
+      NFVMessage message;
+      HashSet<Key> keys;
+      if (body.getKeys() != null) {
+        keys = new HashSet<>(body.getKeys());
+      } else {
+        keys = new HashSet<>();
+      }
+      if (virtualNetworkFunctionDescriptor.getVnfPackageLocation() != null) {
+        VNFPackage vnfPackage =
+            vnfPackageRepository.findFirstById(
+                virtualNetworkFunctionDescriptor.getVnfPackageLocation());
+        message =
+            new OrVnfmInstantiateMessage(
+                virtualNetworkFunctionDescriptor,
+                getDeploymentFlavour(virtualNetworkFunctionDescriptor),
+                virtualNetworkFunctionDescriptor.getName(),
+                networkServiceRecord.getVlr(),
+                extension,
+                vimInstances,
+                keys,
+                vnfPackage);
+      } else {
+        message =
+            new OrVnfmInstantiateMessage(
+                virtualNetworkFunctionDescriptor,
+                getDeploymentFlavour(virtualNetworkFunctionDescriptor),
+                virtualNetworkFunctionDescriptor.getName(),
+                networkServiceRecord.getVlr(),
+                extension,
+                vimInstances,
+                keys,
+                null);
+      }
+      VnfmManagerEndpoint endpoint =
+          vnfmRegister.getVnfm(virtualNetworkFunctionDescriptor.getEndpoint());
+      if (endpoint == null) {
+        throw new NotFoundException(
+            "VnfManager of type "
+                + virtualNetworkFunctionDescriptor.getType()
+                + " (endpoint = "
+                + virtualNetworkFunctionDescriptor.getEndpoint()
+                + ") is not registered");
+      }
+
+      VnfmSender vnfmSender;
+      try {
+        vnfmSender = this.getVnfmSender(endpoint.getEndpointType());
+      } catch (BeansException e) {
+        throw new NotFoundException(e);
+      }
+      vnfmSender.sendCommand(message, endpoint);
+      log.info(
+          "Sent " + message.getAction() + " to VNF: " + virtualNetworkFunctionDescriptor.getName());
+
       return new AsyncResult<>(null);
     } catch (Exception e) {
       log.error("", e);
@@ -612,7 +701,7 @@ public class VnfmManager
                   .findFirstById(networkServiceRecord.getDescriptor_reference())
                   .getVnfd()
                   .size()
-              != networkServiceRecord.getVnfr().size()) {
+              > networkServiceRecord.getVnfr().size()) {
             log.debug(
                 "Not all the VNFR have been created yet, it is useless to set the NSR status.");
             return;
