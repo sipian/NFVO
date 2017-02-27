@@ -725,6 +725,7 @@ public class ApiDocumentation {
     vimInstance0.setType("openstack");
     vimInstance0.setUsername("User");
     vimInstance0.setLocation(berlin);
+    vimInstance0.setKeyPair("key");
 
     vimInstance0Return.setName("An example of a VimInstance");
     vimInstance0Return.setAuthUrl("A Url");
@@ -732,6 +733,7 @@ public class ApiDocumentation {
     vimInstance0Return.setTenant("demo");
     vimInstance0Return.setType("openstack");
     vimInstance0Return.setUsername("User");
+    vimInstance0Return.setKeyPair("key");
     vimInstance0Return.setLocation(berlinReturn);
     // additional fields
     vimInstance0Return.setId("07241c3b-9d50-44ba-a495-9d3b96c226bd");
@@ -2433,6 +2435,9 @@ public class ApiDocumentation {
                 requestFields(
                     fieldWithPath("active").description("True if the VimInstance is active"),
                     fieldWithPath("authUrl").description("The key authorisation URL of this PoP"),
+                    fieldWithPath("keyPair")
+                        .description(
+                            "Open Stack key pair for providing SSH access to virtual machines"),
                     fieldWithPath("location").description("The location of the data Center"),
                     fieldWithPath("name").description("The name of the VimInstance"),
                     fieldWithPath("password").description("The password"),
@@ -2496,7 +2501,7 @@ public class ApiDocumentation {
                     fieldWithPath("keyPair")
                         .type(JsonFieldType.STRING)
                         .description(
-                            "The keyPair name stored into OpenStack to get the access to the VMs"),
+                            "OpenStack key pair which provides SSH access to the virtual machines"),
                     fieldWithPath("location")
                         .type(JsonFieldType.OBJECT)
                         .description("The location of the data Center"),

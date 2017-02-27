@@ -26,6 +26,7 @@ buildscript {     //api-doc
 plugins {
     id 'net.researchgate.release' version '2.3.4'
     id "nebula.os-package" version "2.2.6"
+    id "org.asciidoctor.convert" version "1.5.2" //api-doc
     id 'com.github.sherter.google-java-format' version '0.5'
     // For the managing of the Licences
     id "com.github.hierynomus.license" version "0.13.1"
@@ -91,6 +92,33 @@ repositories {
 dependencies {
     compile project(':main')
 }
+
+asciidoctorj {
+    version = '1.5.2'
+}
+
+/**
+ * used for the api documentation
+ */
+asciidoctor {
+    sourceDir 'api/src/test/java/org/openbaton/nfvo/core/tests/api/doc'
+    attributes 'snippets': snippetsDir
+    backends = ['html5', 'pdf']
+    outputDir 'api/build/api-documentation'
+    inputs.dir snippetsDir
+    dependsOn test
+}
+
+test {  //api-doc
+    outputs.dir snippetsDir
+}
+
+jar {   //api-doc
+    dependsOn asciidoctor
+    from ("${asciidoctor.outputDir}") {
+    }
+}
+
 allprojects {
     jar {
         manifest {
