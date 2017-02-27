@@ -41,7 +41,3 @@ dependencies {
     testCompile 'org.springframework.restdocs:spring-restdocs-core:1.1.0.RELEASE'
     testCompile 'com.google.code.gson:gson:1.7.2'
 }
-
-repositories {
-    maven { url 'https://repo.spring.io/libs-snapshot' }
-}
