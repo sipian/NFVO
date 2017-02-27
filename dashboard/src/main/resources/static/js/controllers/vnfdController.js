@@ -75,18 +75,6 @@ var app = angular.module('app').controller('VnfdCtrl', function ($scope, $compil
     };
 
 
-    $scope.copyToClipboard = function () {
-        var ids = [];
-        angular.forEach($scope.selection.ids, function (value, k) {
-            if (value) {
-                ids.push({ 'id': k });
-            }
-        });
-        //console.log(ids);
-        clipboard.copyText(JSON.stringify(ids));
-    };
-
-
     if (!angular.isUndefined($routeParams.vduId)) {
         $scope.vduId = $routeParams.vduId;
         console.log($scope.vduId);

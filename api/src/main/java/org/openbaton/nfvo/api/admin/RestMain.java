@@ -65,7 +65,7 @@ public class RestMain {
   public String getVersion() {
     /** Modified to work with the api-doc branch. */
     //    return RestMain.class.getPackage().getImplementationVersion();
-    return "3.1.1";
+    return "3.2.0";
   }
 
   @RequestMapping(

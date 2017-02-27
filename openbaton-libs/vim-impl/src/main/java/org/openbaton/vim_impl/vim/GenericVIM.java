@@ -1073,11 +1073,11 @@ public class GenericVIM extends Vim {
     String image = this.chooseImage(vdu.getVm_image(), vimInstance);
 
     log.info("Finding Networks...");
-    Set<String> networks = new HashSet<>();
+    Set<VNFDConnectionPoint> networks = new HashSet<>();
     for (VNFDConnectionPoint vnfdConnectionPoint : vnfComponent.getConnection_point()) {
-      for (Network net : vimInstance.getNetworks())
-        if (vnfdConnectionPoint.getVirtual_link_reference().equals(net.getName()))
-          networks.add(net.getExtId());
+      //      for (Network net : vimInstance.getNetworks())
+      //        if (vnfdConnectionPoint.getVirtual_link_reference().equals(net.getName()))
+      networks.add(vnfdConnectionPoint);
     }
     log.info("Found Networks with ExtIds: " + networks);
 
@@ -1108,7 +1108,7 @@ public class GenericVIM extends Vim {
             + " - "
             + vimInstance.getKeyPair()
             + " - "
-            + networks
+            + vnfComponent.getConnection_point()
             + " - "
             + vimInstance.getSecurityGroups());
 
@@ -1135,7 +1135,7 @@ public class GenericVIM extends Vim {
               image,
               flavorExtId,
               vimInstance.getKeyPair(),
-              networks,
+              vnfComponent.getConnection_point(),
               vimInstance.getSecurityGroups(),
               userdata,
               floatingIps,
